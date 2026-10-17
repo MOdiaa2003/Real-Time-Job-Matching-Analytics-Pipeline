@@ -28,33 +28,7 @@ The project demonstrates CDC, stream processing, data quality, Delta Lake upsert
 
 The Python generator writes to PostgreSQL only. Debezium captures committed database changes from PostgreSQL's write-ahead log (WAL) and publishes them to Kafka-compatible Redpanda topics. The streaming and batch paths then consume those topics independently.
 
-```mermaid
-flowchart LR
-    G[Python recruitment lifecycle generator] --> PG[(PostgreSQL)]
-    PG -->|WAL / logical replication| DB[Debezium PostgreSQL connector]
-    DB --> K[(Redpanda / Kafka API)]
-    K --> T1[candidate_events]
-    K --> T2[job_events]
-    K --> T3[application_events]
-
-    T1 --> S[Spark Structured Streaming match engine]
-    T2 --> S
-    T3 --> S
-    S --> D1[(Delta candidate_dim / job_dim)]
-    S --> D2[(Delta scored applications)]
-    S --> D3[(Pending and dead-letter applications)]
-    S --> HP[high_priority_matches topic]
-
-    T1 --> B[Batch Bronze ingestion]
-    T2 --> B
-    T3 --> B
-    B --> BR[(Bronze: raw Delta events)]
-    BR --> SI[Silver: flatten, deduplicate, normalize, validate]
-    SI --> SV[(Silver Delta + quarantine)]
-    SV --> GO[Gold builders]
-    GO --> GD[(Gold star schema in Delta)]
-```
-
+![Real-Time Candidate Job Matching Pipeline](./Gemini_Genearted_Image_vljnqxvljnqxvljn.jpeg)
 ### Event topics
 
 | Topic | Source entity |
