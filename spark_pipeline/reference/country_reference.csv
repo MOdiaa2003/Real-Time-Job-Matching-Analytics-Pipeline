@@ -1,0 +1,94 @@
+country_name,country_code,continent,timezone
+Albania,AL,Europe,Europe/Tirane
+Algeria,DZ,Africa,Africa/Algiers
+Angola,AO,Africa,Africa/Luanda
+Argentina,AR,South America,America/Argentina/Buenos_Aires
+Australia,AU,Oceania,Australia/Sydney
+Austria,AT,Europe,Europe/Vienna
+Bangladesh,BD,Asia,Asia/Dhaka
+Belgium,BE,Europe,Europe/Brussels
+Bhutan,BT,Asia,Asia/Thimphu
+Bolivia,BO,South America,America/La_Paz
+Bosnia And Herzegovina,BA,Europe,Europe/Sarajevo
+Brazil,BR,South America,America/Sao_Paulo
+Bulgaria,BG,Europe,Europe/Sofia
+Burkina Faso,BF,Africa,Africa/Ouagadougou
+Cambodia,KH,Asia,Asia/Phnom_Penh
+Cameroon,CM,Africa,Africa/Douala
+Canada,CA,North America,America/Toronto
+Chile,CL,South America,America/Santiago
+China,CN,Asia,Asia/Shanghai
+Colombia,CO,South America,America/Bogota
+Croatia,HR,Europe,Europe/Zagreb
+Czech Republic,CZ,Europe,Europe/Prague
+DR Congo,CD,Africa,Africa/Kinshasa
+Denmark,DK,Europe,Europe/Copenhagen
+Ecuador,EC,South America,America/Guayaquil
+Egypt,EG,Africa,Africa/Cairo
+Estonia,EE,Europe,Europe/Tallinn
+Ethiopia,ET,Africa,Africa/Addis_Ababa
+Finland,FI,Europe,Europe/Helsinki
+France,FR,Europe,Europe/Paris
+Gabon,GA,Africa,Africa/Libreville
+Germany,DE,Europe,Europe/Berlin
+Ghana,GH,Africa,Africa/Accra
+Guinea,GN,Africa,Africa/Conakry
+Guyana,GY,South America,America/Guyana
+Hong Kong,HK,Asia,Asia/Hong_Kong
+Iceland,IS,Europe,Atlantic/Reykjavik
+India,IN,Asia,Asia/Kolkata
+Indonesia,ID,Asia,Asia/Jakarta
+Ireland,IE,Europe,Europe/Dublin
+Ivory Coast,CI,Africa,Africa/Abidjan
+Japan,JP,Asia,Asia/Tokyo
+Kenya,KE,Africa,Africa/Nairobi
+Laos,LA,Asia,Asia/Vientiane
+Luxembourg,LU,Europe,Europe/Luxembourg
+Madagascar,MG,Africa,Indian/Antananarivo
+Malaysia,MY,Asia,Asia/Kuala_Lumpur
+Maldives,MV,Asia,Indian/Maldives
+Mali,ML,Africa,Africa/Bamako
+Mauritius,MU,Africa,Indian/Mauritius
+Mexico,MX,North America,America/Mexico_City
+Moldova,MD,Europe,Europe/Chisinau
+Mongolia,MN,Asia,Asia/Ulaanbaatar
+Montenegro,ME,Europe,Europe/Podgorica
+Morocco,MA,Africa,Africa/Casablanca
+Mozambique,MZ,Africa,Africa/Maputo
+Myanmar,MM,Asia,Asia/Yangon
+Namibia,NA,Africa,Africa/Windhoek
+Nepal,NP,Asia,Asia/Kathmandu
+Netherlands,NL,Europe,Europe/Amsterdam
+New Zealand,NZ,Oceania,Pacific/Auckland
+Nigeria,NG,Africa,Africa/Lagos
+North Macedonia,MK,Europe,Europe/Skopje
+Norway,NO,Europe,Europe/Oslo
+Pakistan,PK,Asia,Asia/Karachi
+Paraguay,PY,South America,America/Asuncion
+Peru,PE,South America,America/Lima
+Philippines,PH,Asia,Asia/Manila
+Poland,PL,Europe,Europe/Warsaw
+Portugal,PT,Europe,Europe/Lisbon
+Romania,RO,Europe,Europe/Bucharest
+Rwanda,RW,Africa,Africa/Kigali
+Senegal,SN,Africa,Africa/Dakar
+Serbia,RS,Europe,Europe/Belgrade
+Singapore,SG,Asia,Asia/Singapore
+Slovenia,SI,Europe,Europe/Ljubljana
+South Africa,ZA,Africa,Africa/Johannesburg
+South Korea,KR,Asia,Asia/Seoul
+Spain,ES,Europe,Europe/Madrid
+Sri Lanka,LK,Asia,Asia/Colombo
+Suriname,SR,South America,America/Paramaribo
+Sweden,SE,Europe,Europe/Stockholm
+Switzerland,CH,Europe,Europe/Zurich
+Taiwan,TW,Asia,Asia/Taipei
+Tanzania,TZ,Africa,Africa/Dar_es_Salaam
+Thailand,TH,Asia,Asia/Bangkok
+Tunisia,TN,Africa,Africa/Tunis
+Uganda,UG,Africa,Africa/Kampala
+United Kingdom,GB,Europe,Europe/London
+United States,US,North America,America/New_York
+Uruguay,UY,South America,America/Montevideo
+Venezuela,VE,South America,America/Caracas
+Vietnam,VN,Asia,Asia/Ho_Chi_Minh

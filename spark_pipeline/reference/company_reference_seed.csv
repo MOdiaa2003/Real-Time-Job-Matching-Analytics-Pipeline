@@ -1,0 +1,120 @@
+company_name,company_size,company_type,founded_year,headquarters_country,website_domain,employee_count,revenue_range
+Apple,10000+,Public,1976,United States,apple.com,161000,$100B+
+Microsoft,10000+,Public,1975,United States,microsoft.com,221000,$100B+
+Alphabet,10000+,Public,2015,United States,abc.xyz,190000,$100B+
+Amazon,10000+,Public,1994,United States,amazon.com,1500000,$100B+
+NVIDIA,10000+,Public,1993,United States,nvidia.com,29600,$50B-$100B
+Meta Platforms,10000+,Public,2004,United States,meta.com,77000,$100B+
+Tencent Holdings,10000+,Public,1998,China,tencent.com,108000,$50B-$100B
+TSMC,10000+,Public,1987,Taiwan,tsmc.com,73000,$50B-$100B
+Samsung Electronics,10000+,Public,1969,South Korea,samsung.com,287000,$100B+
+Alibaba Group,10000+,Public,1999,China,alibaba.com,235000,$100B+
+Intel,10000+,Public,1968,United States,intel.com,124000,$50B-$100B
+Cisco Systems,10000+,Public,1984,United States,cisco.com,86000,$50B-$100B
+Oracle,10000+,Public,1977,United States,oracle.com,164000,$50B-$100B
+SAP,10000+,Public,1972,Germany,sap.com,111000,$30B-$50B
+IBM,10000+,Public,1911,United States,ibm.com,282000,$50B-$100B
+Broadcom,10000+,Public,1991,United States,broadcom.com,20000,$30B-$50B
+AMD,10000+,Public,1969,United States,amd.com,26000,$20B-$30B
+Qualcomm,10000+,Public,1985,United States,qualcomm.com,51000,$30B-$50B
+Salesforce,10000+,Public,1999,United States,salesforce.com,73000,$30B-$50B
+Adobe,10000+,Public,1982,United States,adobe.com,30000,$20B-$30B
+PayPal,10000+,Public,1998,United States,paypal.com,30000,$20B-$30B
+Visa,10000+,Public,1958,United States,visa.com,26500,$30B-$50B
+Mastercard,10000+,Public,1966,United States,mastercard.com,29000,$20B-$30B
+Stripe,5001-10000,Private,2010,United States,stripe.com,8000,$10B-$50B
+Square (Block),10000+,Public,2009,United States,block.xyz,12000,$10B-$50B
+Shopify,10000+,Public,2006,Canada,shopify.com,11000,$5B-$10B
+Netflix,10000+,Public,1997,United States,netflix.com,12800,$30B-$50B
+Uber Technologies,10000+,Public,2009,United States,uber.com,32000,$30B-$50B
+Airbnb,5001-10000,Public,2008,United States,airbnb.com,7000,$5B-$10B
+Spotify,10000+,Public,2006,Sweden,spotify.com,9500,$10B-$20B
+Snap Inc.,5001-10000,Public,2011,United States,snap.com,5000,$5B-$10B
+Pinterest,5001-10000,Public,2010,United States,pinterest.com,4000,$3B-$5B
+ByteDance,10000+,Private,2012,China,bytedance.com,150000,$50B-$100B
+Xiaomi,10000+,Public,2010,China,mi.com,35000,$30B-$50B
+Huawei Technologies,10000+,Private,1987,China,huawei.com,195000,$100B+
+Lenovo Group,10000+,Public,1984,China,lenovo.com,82000,$60B-$100B
+Dell Technologies,10000+,Public,1984,United States,dell.com,120000,$100B+
+HP Inc.,10000+,Public,1939,United States,hp.com,58000,$50B-$100B
+Hewlett Packard Enterprise,10000+,Public,2015,United States,hpe.com,60000,$30B-$50B
+ASML Holding,10000+,Public,1984,Netherlands,asml.com,42000,$30B-$50B
+Applied Materials,10000+,Public,1967,United States,appliedmaterials.com,33000,$25B-$35B
+Texas Instruments,10000+,Public,1930,United States,ti.com,33000,$20B-$25B
+Analog Devices,10000+,Public,1965,United States,analog.com,26000,$10B-$15B
+Micron Technology,10000+,Public,1978,United States,micron.com,43000,$20B-$25B
+SK Hynix,10000+,Public,1949,South Korea,skhynix.com,35000,$30B-$50B
+Western Digital,10000+,Public,1970,United States,westerndigital.com,65000,$15B-$20B
+Seagate Technology,10000+,Public,1979,Ireland,seagate.com,40000,$10B-$15B
+Sony,10000+,Public,1946,Japan,sony.com,113000,$80B-$100B
+LG Electronics,10000+,Public,1958,South Korea,lg.com,75000,$60B-$80B
+Panasonic,10000+,Public,1918,Japan,panasonic.com,240000,$60B-$80B
+Fujitsu,10000+,Public,1935,Japan,fujitsu.com,124000,$30B-$40B
+NEC Corporation,10000+,Public,1899,Japan,nec.com,110000,$25B-$30B
+Hitachi,10000+,Public,1910,Japan,hitachi.com,320000,$80B-$100B
+Canon,10000+,Public,1937,Japan,canon.com,184000,$30B-$40B
+Nokia,10000+,Public,1865,Finland,nokia.com,86000,$25B-$30B
+Ericsson,10000+,Public,1876,Sweden,ericsson.com,105000,$25B-$30B
+ZTE Corporation,10000+,Public,1985,China,zte.com.cn,73000,$15B-$20B
+Motorola Solutions,10000+,Public,1928,United States,motorolasolutions.com,18000,$10B-$15B
+Hon Hai Precision (Foxconn),10000+,Public,1974,Taiwan,foxconn.com,1200000,$200B+
+Siemens,10000+,Public,1847,Germany,siemens.com,320000,$80B-$100B
+Bosch,10000+,Private,1886,Germany,bosch.com,420000,$80B-$100B
+Philips,10000+,Public,1891,Netherlands,philips.com,82000,$20B-$25B
+Schneider Electric,10000+,Public,1836,France,se.com,150000,$40B-$50B
+Uber (food & mobility),10000+,Public,2009,United States,uber.com,32000,$30B-$50B
+Grab,10000+,Public,2012,Singapore,grab.com,11000,$1B-$5B
+DoorDash,10000+,Public,2013,United States,doordash.com,20000,$7B-$10B
+Instacart,5001-10000,Public,2012,United States,instacart.com,3000,$2B-$3B
+Delivery Hero,10000+,Public,2011,Germany,deliveryhero.com,45000,$10B-$15B
+JD.com,10000+,Public,1998,China,jd.com,450000,$150B+
+Pinduoduo,10000+,Public,2015,China,pinduoduo.com,13000,$30B-$50B
+Meituan,10000+,Public,2010,China,meituan.com,100000,$30B-$50B
+Ant Group,10000+,Private,2014,China,antgroup.com,16000,$15B-$20B
+Adyen,5001-10000,Public,2006,Netherlands,adyen.com,4000,$1B-$2B
+Electronic Arts,10000+,Public,1982,United States,ea.com,13000,$7B-$8B
+Activision Blizzard,10000+,Public,1979,United States,activisionblizzard.com,17000,$8B-$10B
+Take-Two Interactive,5001-10000,Public,1993,United States,take2games.com,7800,$5B-$6B
+Riot Games,5001-10000,Private,2006,United States,riotgames.com,4500,$1.5B-$2B
+Valve,201-500,Private,1996,United States,valvesoftware.com,350,$500M-$1B
+Epic Games,10000+,Private,1991,United States,epicgames.com,4000,$5B-$6B
+Unity Technologies,5001-10000,Public,2004,Denmark,unity.com,7700,$1.5B-$2B
+Cloudflare,5001-10000,Public,2009,United States,cloudflare.com,3600,$1B-$1.5B
+Akamai,10000+,Public,1998,United States,akamai.com,10000,$3B-$5B
+Fastly,1001-5000,Public,2011,United States,fastly.com,1100,$400M-$500M
+ServiceNow,10000+,Public,2004,United States,servicenow.com,24000,$8B-$10B
+Workday,10000+,Public,2005,United States,workday.com,17500,$6B-$7B
+VMware,10000+,Public,1998,United States,broadcom.com,38000,$12B-$14B
+Red Hat,10000+,Subsidiary,1993,United States,redhat.com,20000,$3B-$5B
+Splunk,10000+,Public,2003,United States,splunk.com,8000,$3B-$4B
+Datadog,5001-10000,Public,2010,United States,datadoghq.com,5200,$1.5B-$2B
+Snowflake,5001-10000,Public,2012,United States,snowflake.com,7000,$2B-$3B
+MongoDB,5001-10000,Public,2007,United States,mongodb.com,4700,$1.5B-$2B
+Elastic,1001-5000,Public,2012,Netherlands,elastic.co,3000,$1B-$1.5B
+Confluent,1001-5000,Public,2014,United States,confluent.io,2500,$700M-$800M
+HashiCorp,1001-5000,Public,2012,United States,hashicorp.com,4000,$500M-$600M
+Atlassian,10000+,Public,2002,Australia,atlassian.com,11000,$3B-$4B
+Zoom Video Communications,10000+,Public,2011,United States,zoom.us,8600,$4B-$5B
+Teradata,10000+,Public,1979,United States,teradata.com,7200,$1.8B-$2B
+Nutanix,5001-10000,Public,2009,United States,nutanix.com,6500,$1.5B-$2B
+Pure Storage,5001-10000,Public,2009,United States,purestorage.com,5000,$2B-$3B
+NetApp,10000+,Public,1992,United States,netapp.com,12000,$6B-$7B
+Hitachi Vantara,10000+,Subsidiary,2017,United States,hitachivantara.com,10000,$4B-$5B
+Informatica,5001-10000,Public,1993,United States,informatica.com,5500,$1.5B-$2B
+Talend,1001-5000,Public,2005,France,talend.com,1500,$300M-$400M
+Fivetran,1001-5000,Private,2012,United States,fivetran.com,1200,$200M-$300M
+Illumio,501-1000,Private,2013,United States,illumio.com,600,$100M-$200M
+ExtraHop,501-1000,Private,2007,United States,extrahop.com,500,$100M-$150M
+Blue Yonder,5001-10000,Private,1985,United States,blueyonder.com,6500,$1B-$2B
+Manhattan Associates,5001-10000,Public,1990,United States,manh.com,4100,$800M-$900M
+Epicor,5001-10000,Private,1972,United States,epicor.com,4800,$1B-$1.5B
+IFS,5001-10000,Private,1983,Sweden,ifs.com,6000,$1B-$1.5B
+Workiva,1001-5000,Public,2008,United States,workiva.com,2100,$500M-$600M
+BlackLine,1001-5000,Public,2001,United States,blackline.com,1600,$500M-$600M
+Coupa Software,5001-10000,Public,2006,United States,coupa.com,3500,$800M-$900M
+Procore Technologies,5001-10000,Public,2002,United States,procore.com,3000,$700M-$800M
+Autodesk,10000+,Public,1982,United States,autodesk.com,13600,$5B-$6B
+Bentley Systems,5001-10000,Public,1984,United States,bentley.com,4500,$1B-$1.2B
+Hexagon AB,10000+,Public,1975,Sweden,hexagon.com,24000,$5B-$6B
+Trimble Inc.,10000+,Public,1978,United States,trimble.com,11900,$3B-$4B
+Dassault Systèmes,10000+,Public,1981,France,3ds.com,24000,$6B-$7B

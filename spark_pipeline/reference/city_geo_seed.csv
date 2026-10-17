@@ -1,0 +1,93 @@
+city_norm,country,state_region,latitude,longitude,city_timezone
+cairo,Egypt,Cairo Governorate,30.0444,31.2357,Africa/Cairo
+london,United Kingdom,England,51.5074,-0.1278,Europe/London
+new york city,United States,New York,40.7128,-74.006,America/New_York
+san francisco,United States,California,37.7749,-122.4194,America/Los_Angeles
+seattle,United States,Washington,47.6062,-122.3321,America/Los_Angeles
+austin,United States,Texas,30.2672,-97.7431,America/Chicago
+toronto,Canada,Ontario,43.6532,-79.3832,America/Toronto
+vancouver,Canada,British Columbia,49.2827,-123.1207,America/Vancouver
+boston,United States,Massachusetts,42.3601,-71.0589,America/New_York
+washington d.c.,United States,District of Columbia,38.9072,-77.0369,America/New_York
+chicago,United States,Illinois,41.8781,-87.6298,America/Chicago
+los angeles,United States,California,34.0522,-118.2437,America/Los_Angeles
+berlin,Germany,Berlin,52.52,13.405,Europe/Berlin
+munich,Germany,Bavaria,48.1351,11.582,Europe/Berlin
+amsterdam,Netherlands,North Holland,52.3676,4.9041,Europe/Amsterdam
+paris,France,Ile-de-France,48.8566,2.3522,Europe/Paris
+dublin,Ireland,Leinster,53.3498,-6.2603,Europe/Dublin
+stockholm,Sweden,Stockholm County,59.3293,18.0686,Europe/Stockholm
+zurich,Switzerland,Zurich,47.3769,8.5417,Europe/Zurich
+barcelona,Spain,Catalonia,41.3874,2.1686,Europe/Madrid
+lisbon,Portugal,Lisbon District,38.7223,-9.1393,Europe/Lisbon
+vienna,Austria,Vienna,48.2082,16.3738,Europe/Vienna
+warsaw,Poland,Masovian,52.2297,21.0122,Europe/Warsaw
+brussels,Belgium,Brussels-Capital,50.8503,4.3517,Europe/Brussels
+copenhagen,Denmark,Capital Region,55.6761,12.5683,Europe/Copenhagen
+bengaluru,India,Karnataka,12.9716,77.5946,Asia/Kolkata
+mumbai,India,Maharashtra,19.076,72.8777,Asia/Kolkata
+new delhi,India,Delhi,28.6139,77.209,Asia/Kolkata
+shanghai,China,Shanghai,31.2304,121.4737,Asia/Shanghai
+beijing,China,Beijing,39.9042,116.4074,Asia/Shanghai
+singapore,Singapore,Central Singapore,1.3521,103.8198,Asia/Singapore
+tokyo,Japan,Tokyo,35.6762,139.6503,Asia/Tokyo
+seoul,South Korea,Seoul,37.5665,126.978,Asia/Seoul
+hong kong,Hong Kong,Hong Kong Island,22.3193,114.1694,Asia/Hong_Kong
+kuala lumpur,Malaysia,Federal Territory of KL,3.139,101.6869,Asia/Kuala_Lumpur
+jakarta,Indonesia,Jakarta,-6.2088,106.8456,Asia/Jakarta
+bangkok,Thailand,Bangkok,13.7563,100.5018,Asia/Bangkok
+lagos,Nigeria,Lagos State,6.5244,3.3792,Africa/Lagos
+cape town,South Africa,Western Cape,-33.9249,18.4241,Africa/Johannesburg
+johannesburg,South Africa,Gauteng,-26.2041,28.0473,Africa/Johannesburg
+nairobi,Kenya,Nairobi County,-1.2921,36.8219,Africa/Nairobi
+accra,Ghana,Greater Accra,5.6037,-0.187,Africa/Accra
+são paulo,Brazil,São Paulo,-23.5505,-46.6333,America/Sao_Paulo
+buenos aires,Argentina,Buenos Aires,-34.6037,-58.3816,America/Argentina/Buenos_Aires
+santiago,Chile,Santiago Metropolitan,-33.4489,-70.6693,America/Santiago
+bogotá,Colombia,Bogotá D.C.,4.711,-74.0721,America/Bogota
+mexico city,Mexico,Mexico City,19.4326,-99.1332,America/Mexico_City
+sydney,Australia,New South Wales,-33.8688,151.2093,Australia/Sydney
+melbourne,Australia,Victoria,-37.8136,144.9631,Australia/Melbourne
+auckland,New Zealand,Auckland,-36.8485,174.7633,Pacific/Auckland
+wellington,New Zealand,Wellington,-41.2865,174.7762,Pacific/Auckland
+montreal,Canada,Quebec,45.5017,-73.5673,America/Toronto
+cleveland,United States,Ohio,41.4993,-81.6944,America/New_York
+portland,United States,Oregon,45.5152,-122.6784,America/Los_Angeles
+san jose,United States,California,37.3382,-121.8863,America/Los_Angeles
+calgary,Canada,Alberta,51.0447,-114.0719,America/Edmonton
+ottawa,Canada,Ontario,45.4215,-75.6972,America/Toronto
+tallinn,Estonia,Harju County,59.437,24.7536,Europe/Tallinn
+helsinki,Finland,Uusimaa,60.1699,24.9384,Europe/Helsinki
+oslo,Norway,Oslo County,59.9139,10.7522,Europe/Oslo
+prague,Czech Republic,Prague,50.0755,14.4378,Europe/Prague
+belgrade,Serbia,Belgrade,44.7866,20.4489,Europe/Belgrade
+chennai,India,Tamil Nadu,13.0827,80.2707,Asia/Kolkata
+manila,Philippines,Metro Manila,14.5995,120.9842,Asia/Manila
+ho chi minh city,Vietnam,Ho Chi Minh City,10.8231,106.6297,Asia/Ho_Chi_Minh
+dhaka,Bangladesh,Dhaka Division,23.8103,90.4125,Asia/Dhaka
+karachi,Pakistan,Sindh,24.8607,67.0011,Asia/Karachi
+islamabad,Pakistan,Islamabad Capital Territory,33.6844,73.0479,Asia/Karachi
+kigali,Rwanda,Kigali City,-1.9441,30.0619,Africa/Kigali
+abuja,Nigeria,Federal Capital Territory,9.0765,7.3986,Africa/Lagos
+addis ababa,Ethiopia,Addis Ababa,9.145,38.7108,Africa/Addis_Ababa
+abidjan,Ivory Coast,Abidjan,5.36,-4.0083,Africa/Abidjan
+dakar,Senegal,Dakar,14.7167,-17.4677,Africa/Dakar
+tunis,Tunisia,Tunis,36.8065,10.1815,Africa/Tunis
+algiers,Algeria,Algiers,36.7538,3.0588,Africa/Algiers
+casablanca,Morocco,Casablanca-Settat,33.5731,-7.5898,Africa/Casablanca
+rabat,Morocco,Rabat-Salé-Kénitra,34.0209,-6.8416,Africa/Casablanca
+rio de janeiro,Brazil,Rio de Janeiro,-22.9068,-43.1729,America/Sao_Paulo
+quito,Ecuador,Pichincha,-0.1807,-78.4678,America/Guayaquil
+caracas,Venezuela,Capital District,10.4806,-66.9036,America/Caracas
+montevideo,Uruguay,Montevideo,-34.9011,-56.1645,America/Montevideo
+asunción,Paraguay,Asunción,-25.2637,-57.5759,America/Asuncion
+la paz,Bolivia,La Paz,-16.5,-68.15,America/La_Paz
+sucre,Bolivia,Chuquisaca,-19.0333,-65.2597,America/La_Paz
+georgetown,Guyana,Demerara-Mahaica,6.8013,-58.1551,America/Guyana
+paramaribo,Suriname,Paramaribo,5.852,-55.2038,America/Paramaribo
+brisbane,Australia,Queensland,-27.4698,153.0251,Australia/Brisbane
+perth,Australia,Western Australia,-31.9505,115.8605,Australia/Perth
+adelaide,Australia,South Australia,-34.9285,138.6007,Australia/Adelaide
+hobart,Australia,Tasmania,-42.8821,147.3272,Australia/Hobart
+christchurch,New Zealand,Canterbury,-43.5321,172.6362,Pacific/Auckland
+dunedin,New Zealand,Otago,-45.8788,170.5028,Pacific/Auckland
