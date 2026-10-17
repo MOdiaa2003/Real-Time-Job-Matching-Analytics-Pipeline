@@ -28,7 +28,9 @@ The project demonstrates CDC, stream processing, data quality, Delta Lake upsert
 
 The Python generator writes to PostgreSQL only. Debezium captures committed database changes from PostgreSQL's write-ahead log (WAL) and publishes them to Kafka-compatible Redpanda topics. The streaming and batch paths then consume those topics independently.
 
-![Real-Time Candidate Job Matching Pipeline](./Gemini_Genearted_Image_vljnqxvljnqxvljn.jpeg)
+<p align="center">
+  <img src="./Gemini_Generated_Image_vljnqxvljnqxvljn.jpeg" alt="Real-Time Candidate Job Matching Pipeline Architecture" width="100%">
+</p>
 ### Event topics
 
 | Topic | Source entity |
