@@ -3,7 +3,7 @@
 #     (matched by command line, never a blanket python kill)
 #   * docker compose stop (NOT down -v: data in Postgres/Kafka volumes and
 #     the Spark checkpoints survive, restart with scripts\run.ps1)
-$repo = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$repo = Split-Path -Parent $PSScriptRoot
 Set-Location $repo
 
 foreach ($pat in @("match_engine\.py", "recruitment_lifecycle_generator\.py",

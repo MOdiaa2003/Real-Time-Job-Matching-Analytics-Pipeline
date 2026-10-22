@@ -1,0 +1,7 @@
+[2026-10-22 17:42:47] 03_job_state_invalidation : FAIL
+  - FAIL specific invalidation for 0f6c6da5-777a-4016-93a4-8903c19c1339: 0 hit(s)
+  - FAIL Delta match_invalidations did not receive 0f6c6da5-777a-4016-93a4-8903c19c1339 within timeout
+  -      [Stage 4:==========================================>             (38 + 12) / 50]
+  -      
+  -                                                                                      
+  - FAIL

@@ -7,7 +7,7 @@
 # preserved containers renamed *_old_jobposting (previous project) are
 # never touched. Optional -KeepSparkState skips deleting checkpoints/lake.
 param([switch]$KeepSparkState)
-$repo = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$repo = Split-Path -Parent $PSScriptRoot
 Set-Location $repo
 
 Write-Host "== stopping and removing THIS project's containers + volumes"

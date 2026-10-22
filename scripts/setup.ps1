@@ -6,7 +6,7 @@
 #   5. connectors registered
 #   6. ksql DDL applied
 # Safe to re-run: every step skips when already done.
-$repo = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$repo = Split-Path -Parent $PSScriptRoot
 Set-Location $repo
 $ErrorActionPreference = "Continue"
 

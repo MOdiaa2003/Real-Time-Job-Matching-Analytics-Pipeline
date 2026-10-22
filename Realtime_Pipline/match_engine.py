@@ -1531,6 +1531,7 @@ Real-Time Candidate ↔ Job Matching Engine (Optimized)
 
 import os
 import sys
+import pathlib
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -1656,14 +1657,44 @@ SPARK_PARQUET_CODEC = os.getenv("SPARK_PARQUET_CODEC", "snappy")
 #         .config("spark.task.maxFailures", "4")
 #         .getOrCreate()
 #     )
+def _local_package_jars() -> str:
+    """Delta + Kafka connector jars from the LOCAL ivy cache.
+
+    Replaces spark.jars.packages (maven network resolution) so engine
+    startup is deterministic and offline: cold ivy/maven resolution was
+    observed hanging for minutes when network state changed mid-session.
+    Exact pinned versions, all verified present in %USERPROFILE%\\.ivy2.
+   antlr4/lz4/snappy/zstd already ship with the local C:\\spark\\jars
+    install, so only actually missing jars are attached.
+    """
+    ivy = pathlib.Path.home() / ".ivy2" / "cache"
+    wanted = [
+        ("io.delta", "delta-spark_2.12-3.2.0.jar", "io.delta/delta-spark_2.12/jars"),
+        ("io.delta", "delta-storage-3.2.0.jar", "io.delta/delta-storage/jars"),
+        ("kafka-connector", "spark-sql-kafka-0-10_2.12-3.5.3.jar",
+         "org.apache.spark/spark-sql-kafka-0-10_2.12/jars"),
+        ("kafka-connector", "spark-token-provider-kafka-0-10_2.12-3.5.3.jar",
+         "org.apache.spark/spark-token-provider-kafka-0-10_2.12/jars"),
+        ("kafka-clients", "kafka-clients-3.4.1.jar",
+         "org.apache.kafka/kafka-clients/jars"),
+        ("pool2", "commons-pool2-2.11.1.jar",
+         "org.apache.commons/commons-pool2/jars"),
+    ]
+    jars = []
+    for _name, fname, subdir in wanted:
+        p = ivy / subdir / fname
+        if p.exists():
+            jars.append(str(p))
+    return ",".join(jars)
+
+
 def build_spark() -> SparkSession:
     return (
         SparkSession.builder
         .appName("candidate-job-match-engine")
         .master(f"local[{SPARK_LOCAL_CORES}]")
-        .config("spark.jars.packages",
-                "io.delta:delta-spark_2.12:3.2.0,"
-                "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.3")
+        # Deterministic local jars (no maven network resolution):
+        .config("spark.jars", _local_package_jars())
         .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
         .config("spark.sql.catalog.spark_catalog",
                 "org.apache.spark.sql.delta.catalog.DeltaCatalog")

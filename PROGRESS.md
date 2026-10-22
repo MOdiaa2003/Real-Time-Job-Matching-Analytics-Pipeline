@@ -184,3 +184,79 @@ per-suite receipts under tests/<suite>/results/):
 - 06_latency_freshness PASS 52s (events=24 distinct=24; p50=4494ms
   p95=5994ms max=6245ms <= 10000ms SLA)
 TOTAL: 6/6 PASS.
+
+=====================================================================
+STAGE 5.1 - ENVIRONMENT INCIDENT + RESTORATION (2026-10-22 17:20-18:10)
+=====================================================================
+INCIDENT REPORT (environment damaged externally between the first
+official 6/6 PASS at 16:41 and the restoration pass at 18:08):
+
+Discovery after a 2/6-FAIL run_all (02 SCHEMA_LOOKUP_FAILED nuance;
+03 topic->Delta leg broken):
+1. ALL project containers except `kafka` had been REMOVED
+   (schema-registry exited; ksqldb/kafka-connect/my_postgres/
+   my_postgres_analytics/stream-processor/console absent). Data volumes
+   survived (pgdata, pgdata_analytics, ksqldb_state, sp_state,
+   kafka_data). scripts/setup.ps1 recreated the containers intact.
+2. TOPICS TRUNCATED while consumers had committed offsets AHEAD of the
+   truncated end: ksql query CSAS_MATCH_INVALIDATION_EVENTS showed
+   task offsets committedOffset=68 > endOffset=66 on job_state_events
+   p2 - records appended at 66/67 sit BELOW the committed mark and are
+   skipped by that query (future events at 68+ flow normally).
+   application_events topic end=0 (all history from that topic gone);
+   job_events and application_submitted_events showed 1 partition
+   while the contract is 3 (docs/topics_and_keys.md). job_metrics_5m
+   materialized rows intact (1648 rows at restoration pass).
+   LESSON: never truncate topics a live consumer has committed past;
+   verify partition counts after manual topic surgery.
+3. THE REPO FOLDER MOVED UP ONE LEVEL. scripts that compute $repo by
+   Split-Path -Parent TWICE from a DIRECTORY-rooted $PSScriptRoot
+   (scripts\setup|run|stop|reset.ps1, monitoring\load_test.ps1) pointed
+   at the PARENT directory - a naive re-run of setup.ps1 from the repo
+   executed the PARENT dir's compose project (a user-owned Conduktor
+   demo, project name "midoo"). Side effect fully undone with
+   `docker compose -p midoo down` (NO -v; volumes kept); the *_old_job-
+   posting containers of the previous project were untouched.
+   FIX: those five scripts now compute $repo = Split-Path -Parent
+   $PSScriptRoot - correct for the current layout (tests\run_all.ps1
+   and suite scripts split a FILE path and were already correct).
+
+RESTORATION STEPS (all verified):
+- Fixed $repo in scripts\setup|run|stop|reset.ps1 + monitoring\load_test.ps1.
+- Re-ran scripts/setup.ps1 (idempotent): containers recreated on the
+  surviving volumes; topics verified; 3 connectors RUNNING; 7 ksql
+  persistent queries RUNNING.
+- Suite 02 accounting fix: the processor legitimately emits
+  SCHEMA_LOOKUP_FAILED (and TRUNCATED_HEADER / AVRO_DECODE_FAILED /
+  EMPTY_VALUE) for seeded malformed variants, depending on WHERE the
+  payload breaks (valid magic byte but bogus schema id ->
+  SCHEMA_LOOKUP_FAILED, cdc_utils.py). tests/02 reconcile now expects
+  the whole undecodable code family for malformed inputs and for
+  per-id DLQ accounting.
+- Suite 03/ENGINE fix (root cause of the 18:0x Delta-leg failures):
+  spark.jars.packages maven resolution could HANG for minutes when the
+  network state changed mid-session (observed twice: engine spawn
+  produced ZERO Delta commits at 17:42 and 18:01). Replaced with
+  spark.jars pointing at PINNED LOCAL JARS from
+  %USERPROFILE%\.ivy2\cache via _local_package_jars() (delta-spark
+  3.2.0 + delta-storage + antlr4, spark-sql-kafka-0-10_2.12 3.5.3 +
+  token-provider + kafka-clients 3.4.1 + commons-pool2 2.11.1;
+  lz4/snappy/zstd/antlr already ship with the local C:\spark\jars
+  install). Engine startup now OFFLINE and fast. Same change applied
+  to tests/03/spark_leg_runner.py (_test_read_jars).
+- Suite 03 verified PASS solo (job 1206278c, Delta total_rows=13,
+  HIT attempt 2, warm ~2.5 min incl. engine start).
+
+OFFICIAL RESTORATION RUN (tests/run_all.ps1, started 18:08:37):
+- 01_pipeline_health        PASS 3s
+- 02_dedup_dlq_integrity    PASS 66s  (122 in = 67 + 50 DUPLICATE + 5
+  undecodable DLQ, zero unaccounted, lag=0 after 1 probe)
+- 03_job_state_invalidation PASS 45s  (job 14a2b59e -> topic hit ->
+  Delta append)
+- 04_windowed_metrics       PASS 1s   (job_metrics_5m=1648 rows,
+  widths {300000,600000}, no dup PKs)
+- 05_jdbc_sink_upsert       PASS 41s  (PK 1/1 after replay,
+  1648/1648 totals)
+- 06_latency_freshness      PASS 52s  (p50=4267ms p95=5963ms
+  max=6217ms <= 10000ms SLA)
+TOTAL 6/6 PASS - project restored to the success state.

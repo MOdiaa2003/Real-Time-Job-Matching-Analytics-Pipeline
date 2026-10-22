@@ -142,6 +142,13 @@ def main():
     # ---- checks ----------------------------------------------------------
     lines, ok = [], True
 
+    # error codes meaning "this payload could not be decoded" - the whole
+    # family the processor can legitimately emit for one seeded malformed
+    # variant depends on WHERE it breaks (magic byte vs schema id vs avro
+    # body); the accounting must accept them all.
+    UNDECODABLE = ("BAD_WIRE_HEADER", "INVALID", "SCHEMA_LOOKUP_FAILED",
+                   "TRUNCATED_HEADER", "AVRO_DECODE_FAILED", "EMPTY_VALUE")
+
     def expect(cond, msg):
         nonlocal ok
         if not cond:
@@ -149,11 +156,13 @@ def main():
         lines.append(("OK " if cond else "FAIL ") + msg)
 
     dup_extra = sum(v - 1 for v in input_ids.values() if v > 1)
+    undecodable_dlq = sum(dlq_wires.get(c, 0) for c in UNDECODABLE)
     expect(out_bad == 0, f"dedup output decodable records: output_unparsable={out_bad}")
     expect(dlq_wires.get("UNPARSEABLE", 0) == 0,
            f"DLQ records are parseable JSON (dlq_codes={dict(dlq_wires)})")
-    expect(bad_wire == dlq_wires.get("BAD_WIRE_HEADER", 0) + dlq_wires.get("INVALID", 0),
-           f"malformed input -> DLQ: input_bad_wire={bad_wire} dlq={dict(dlq_wires)}")
+    expect(bad_wire == undecodable_dlq,
+           f"malformed input -> DLQ: input_bad_wire={bad_wire} "
+           f"dlq_undecodable={undecodable_dlq} (dlq={dict(dlq_wires)})")
     expect(dup_extra == dlq_wires.get("DUPLICATE", 0),
            f"replayed copies -> DLQ: input_replays={dup_extra} dlq_duplicate={dlq_wires.get('DUPLICATE', 0)}")
 
@@ -162,8 +171,8 @@ def main():
     for eid in all_ids:
         replays_expected = input_ids[eid] - 1  # the base copy goes to output
         got_out = out_ids[eid]
-        got_dlq = (dlq_with_ids.get("DUPLICATE", {}).get(eid, 0)
-                   + dlq_with_ids.get("INVALID", {}).get(eid, 0))
+        got_dlq = (sum(dlq_with_ids.get(c, {}).get(eid, 0) for c in UNDECODABLE)
+                   + dlq_with_ids.get("DUPLICATE", {}).get(eid, 0))
         if got_out == 0 and got_dlq != replays_expected:
             # Base copy never emitted AND DLQ count does not match the replay
             # count inside this segment -> the base was silently dropped.

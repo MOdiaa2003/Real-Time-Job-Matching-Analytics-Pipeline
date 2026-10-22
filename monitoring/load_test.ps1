@@ -9,7 +9,7 @@ param(
     [switch]$SkipGenerator       # set to only run the application producer
 )
 
-$repo = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$repo = Split-Path -Parent $PSScriptRoot
 $pyS = Join-Path $repo ".venv-streams\Scripts\python.exe"   # kafka producer deps
 if (-not (Test-Path $pyS)) { $pyS = "python" }
 $pyG = Join-Path $repo ".venv-gen\Scripts\python.exe"       # generator deps (psycopg2)

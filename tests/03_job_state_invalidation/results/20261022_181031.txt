@@ -1,0 +1,5 @@
+[2026-10-22 18:10:31] 03_job_state_invalidation : PASS
+  - OK closed job 14a2b59e-552a-4944-af5c-c238eedd8a9b in source db
+  - OK invalidation topic: 14 new record(s)
+  - OK specific invalidation for 14a2b59e-552a-4944-af5c-c238eedd8a9b: 1 hit(s)
+  - PASS

@@ -1,0 +1,5 @@
+[2026-10-22 17:43:29] 05_jdbc_sink_upsert : PASS
+  - OK connector jdbc-sink-job-metrics-5m RUNNING
+  - OK replaying record for JOB_000071 window[1792679100000..1792679700000] apps=1 matches=0
+  - OK record re-produced
+  - OK PK rows before/after: 1/1; total: 1294/1294; row now: 1/0

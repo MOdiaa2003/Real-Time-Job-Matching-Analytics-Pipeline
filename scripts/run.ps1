@@ -9,7 +9,7 @@ param(
     [switch]$WithGenerator, # also start the source lifecycle generator
     [switch]$WithProducer   # also start the application event producer
 )
-$repo = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$repo = Split-Path -Parent $PSScriptRoot
 Set-Location $repo
 New-Item -ItemType Directory -Force -Path "$repo\logs" | Out-Null
 

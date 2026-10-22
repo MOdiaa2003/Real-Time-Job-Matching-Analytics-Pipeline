@@ -74,17 +74,20 @@ docker exec my_postgres_analytics psql -U postgres -d analytics -c "SELECT count
 
 ## 5. TEST RESULTS
 
-Official sequential run (`tests\run_all.ps1`, started 2026-10-22 16:41:50,
-receipts under `tests\<suite>\results\`): **6 / 6 PASS, 0 failed**.
+Latest official sequential run (`tests\run_all.ps1`, started 2026-10-22 18:08:37,
+per-suite receipts under `tests\<suite>\results\`): **6 / 6 PASS, 0 failed**
+(restoration record after the incident documented in KNOWN ISSUES #11).
+The first official pass (2026-10-22 16:41:50) was also 6/6 PASS with the wall
+times 3s/66s/47s/1s/41s/52s.
 
 | Suite | Verdict | Wall | Measured highlights |
 |---|---|---|---|
 | 01_pipeline_health | PASS | 3s | 30 checks: containers healthy, 14+ topics present (incl. `high_priority_matches`), 3 connectors RUNNING, ksql persistent queries RUNNING, analytics `window_start` is BIGINT |
-| 02_dedup_dlq_integrity | PASS | 66s | producer 124 in (seeded faults) -> 66 unique + 52 DUPLICATE-DLQ + 6 BAD_WIRE_HEADER-DLQ = **zero unaccounted**, per-id reconciliation holds; drain lag=0 after 1 probe |
-| 03_job_state_invalidation | PASS | 47s | SQL `UPDATE status='closed'` -> Debezium -> ksql both legs -> `match_invalidation_events` 10 new records, specific hit for job `0f250d8e...` -> Spark engine appended to Delta (`match_invalidations` total_rows=10, HIT at attempt 2) |
-| 04_windowed_metrics | PASS | 1s | analytics `job_metrics_5m` = 1084 rows; window widths exactly {300000, 600000} ms; 0 duplicate primary keys |
-| 05_jdbc_sink_upsert | PASS | 41s | replayed a real `job_metrics_5m` topic record -> PK rows 1/1, totals 1084/1084 (idempotent upsert) |
-| 06_latency_freshness | PASS | 52s | events=24 distinct=24; end-to-end p50=4494 ms, **p95=5994 ms, max=6245 ms <= 10000 ms SLA** |
+| 02_dedup_dlq_integrity | PASS | 66s | 122 in (seeded faults) -> 67 unique + 50 DUPLICATE-DLQ + 5 undecodable-DLQ = **zero unaccounted**, per-id reconciliation holds across the whole undecodable DLQ code family (BAD_WIRE_HEADER / SCHEMA_LOOKUP_FAILED / TRUNCATED_HEADER / AVRO_DECODE_FAILED); drain lag=0 after 1 probe |
+| 03_job_state_invalidation | PASS | 45s | SQL close -> Debezium -> ksql both legs -> topic hit for job `14a2b59e...` -> Spark engine appended to Delta `match_invalidations` (13 total rows, HIT at attempt 2; engine now starts offline in seconds - see KNOWN ISSUES #11) |
+| 04_windowed_metrics | PASS | 1s | analytics `job_metrics_5m` = 1648 rows; window widths exactly {300000, 600000} ms; 0 duplicate primary keys |
+| 05_jdbc_sink_upsert | PASS | 41s | replayed a real `job_metrics_5m` topic record -> PK rows 1/1, totals 1648/1648 (idempotent upsert) |
+| 06_latency_freshness | PASS | 52s | events=24 distinct=24; end-to-end p50=4267 ms, **p95=5963 ms, max=6217 ms <= 10000 ms SLA** |
 
 Supporting evidence:
 
@@ -101,9 +104,11 @@ Supporting evidence:
 
 Honest, currently-accepted limitations (none block the green run above):
 
-1. **Cold-start latency (suite 03 flake, mitigated).** First Spark session of the
-   day resolves `spark.jars.packages` via ivy/maven and can take minutes; raised
-   the runner deadline to 700 s. Warm runs settle at ~47 s.
+1. **Cold-start latency (suite 03 flake, FIXED).** `spark.jars.packages` resolved
+   via ivy/maven and could hang for minutes when network state changed. The
+   engine + test readers now attach the pinned jars DIRECTLY from the local ivy
+   cache via `spark.jars` (see `_local_package_jars`) - startup is offline and
+   fast; warm run ~45 s.
 2. **ksqlDB uppercases unquoted identifiers.** Invalidation JSON arrives as
    `JOB_ID`/`PRIOR_STATUS`/... ; every consumer maps casing explicitly
    (`schemas/match_invalidation.avsc` documents the wire contract).
@@ -126,6 +131,28 @@ Honest, currently-accepted limitations (none block the green run above):
 10. `.venv-streams` intentionally lacks pyspark/psycopg2 (system python runs the
     Spark engine; `.venv-gen` runs the generator) - split documented in
     `requirements.txt`.
+11. **Runtime incident 2026-10-22 (restored).** Between the first official
+    6/6 pass (16:41) and the restoration pass (18:08) the environment was
+    damaged externally: (a) all project containers except `kafka` were removed
+    (data volumes survived - `scripts\setup.ps1` recreated them intact);
+    (b) several Kafka topics were truncated while consumer groups had
+    committed offsets AHEAD of the truncated end (e.g. the invalidation query
+    showed committedOffset=68 > endOffset=66), so records appended below the
+    committed mark are skipped by the affected queries - future events
+    (above the mark) flow normally; (c) the repo folder moved up one level,
+    breaking the double `Split-Path -Parent` in `scripts\*.ps1` and
+    `monitoring\load_test.ps1`. Fixes applied: correct `$repo` computation,
+    offline pinned jars for the engine, suite-02 accounting extended to the
+    whole undecodable DLQ code family. Lesson: never truncate topics a live
+    consumer has already committed past - reset consumer-group offsets
+    FIRST, AND re-check topic partition counts after manual topic surgery.
+12. **`application_events` lost its history in that incident** (topic recreated
+    empty; 3->1-partition recreations of `job_events` /
+    `application_submitted_events` possible too - verify partition counts
+    against `docs\topics_and_keys.md` after manual topic changes). New
+    synthetic traffic flows normally; only pre-incident history is gone from
+    that topic (analytics DB, Delta lake and ksql state stores preserved it
+    for aggregation purposes).
 
 ## 7. INTERVIEW MAP
 

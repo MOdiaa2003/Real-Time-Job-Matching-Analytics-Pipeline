@@ -17,6 +17,23 @@ import time
 REPO = pathlib.Path(__file__).resolve().parents[2]
 
 
+def _test_read_jars():
+    """Local ivy-cache jars for the reader session (same set as the
+    engine's build_spark) - deterministic, no maven network resolution."""
+    ivy = pathlib.Path.home() / ".ivy2" / "cache"
+    wanted = [
+        "io.delta/delta-spark_2.12/jars/delta-spark_2.12-3.2.0.jar",
+        "io.delta/delta-storage/jars/delta-storage-3.2.0.jar",
+        "org.apache.spark/spark-sql-kafka-0-10_2.12/jars/spark-sql-kafka-0-10_2.12-3.5.3.jar",
+        "org.apache.spark/spark-token-provider-kafka-0-10_2.12/jars/spark-token-provider-kafka-0-10_2.12-3.5.3.jar",
+        "org.apache.kafka/kafka-clients/jars/kafka-clients-3.4.1.jar",
+        "org.apache.commons/commons-pool2/jars/commons-pool2-2.11.1.jar",
+    ]
+    jars = [str(ivy / w.replace("/", "\\")) if os.name == "nt" else str(ivy / w)
+            for w in wanted]
+    return ",".join(j for j in jars if os.path.exists(j))
+
+
 def main():
     job_id = sys.argv[1]
     deltadir = REPO / "streaming_lake" / "match_invalidations"
@@ -27,9 +44,7 @@ def main():
         from pyspark.sql import SparkSession
         builder = (SparkSession.builder
                    .appName("test03-read-invalidations")
-                   .config("spark.jars.packages",
-                           "io.delta:delta-spark_2.12:3.2.0,"
-                           "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.3")
+                   .config("spark.jars", _test_read_jars())
                    .config("spark.sql.extensions",
                            "io.delta.sql.DeltaSparkSessionExtension")
                    .config("spark.sql.catalog.spark_catalog",
