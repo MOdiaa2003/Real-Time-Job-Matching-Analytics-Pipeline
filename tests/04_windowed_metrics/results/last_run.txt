@@ -1,0 +1,10 @@
+[2026-10-22 16:43:47] 04_windowed_metrics : PASS
+  - OK connector jdbc-sink-job-metrics-5m RUNNING
+  - OK job_metrics_5m has 1084 rows
+  - OK window widths valid: 300000,600000
+  - OK 5-minute tumbling windows present
+  - OK 10-minute hopping windows present
+  - OK no duplicate primary keys
+  -     row: JOB_000051 w[1792676400000->1792677000000] apps=2 matches=0
+  -     row: JOB_000151 w[1792676400000->1792677000000] apps=1 matches=0
+  -     row: JOB_000048 w[1792676400000->1792677000000] apps=1 matches=0

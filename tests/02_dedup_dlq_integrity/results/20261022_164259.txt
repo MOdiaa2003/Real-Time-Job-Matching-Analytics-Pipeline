@@ -1,0 +1,12 @@
+[2026-10-22 16:42:59] 02_dedup_dlq_integrity : PASS
+  - OK stream-processor running
+  - OK producer run: DONE: {'sent': 124, 'duplicated': 52, 'malformed': 6, 'late': 0, 'burst': 0, 'failed': 0}
+  - OK processor drained input (lag=0) after 1 probe(s)
+  -   PASS
+  -     OK dedup output decodable records: output_unparsable=0
+  -     OK DLQ records are parseable JSON (dlq_codes={'DUPLICATE': 52, 'BAD_WIRE_HEADER': 6})
+  -     OK malformed input -> DLQ: input_bad_wire=6 dlq={'DUPLICATE': 52, 'BAD_WIRE_HEADER': 6}
+  -     OK replayed copies -> DLQ: input_replays=52 dlq_duplicate=52
+  -     OK no event lost without output/DLQ trace (missing=[])
+  -     OK per-id accounting holds for all ids (first_mismatch=[])
+  -   summary: input_decodable=66 input_replays=52 input_bad_wire=6 output_rows=66 dlq={'DUPLICATE': 52, 'BAD_WIRE_HEADER': 6}

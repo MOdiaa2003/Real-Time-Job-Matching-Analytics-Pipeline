@@ -13,3 +13,4 @@ streaming_lake/
 # Container logs / throwaway payloads
 logs/
 *.log
+latency_report.jsonl

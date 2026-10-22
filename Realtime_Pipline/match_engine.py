@@ -1531,6 +1531,7 @@ Real-Time Candidate ↔ Job Matching Engine (Optimized)
 
 import os
 import sys
+from pathlib import Path
 from dotenv import load_dotenv
 
 # Pin the worker Python to the exact interpreter running this script.
@@ -1554,13 +1555,32 @@ from pyspark.sql.types import (
 from delta.tables import DeltaTable
 
 KAFKA_BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
-CHECKPOINT_ROOT = os.getenv("CHECKPOINT_ROOT", "F:/DE_Projects/job_posting/project/checkpoint")
-DELTA_ROOT = os.getenv("DELTA_ROOT", "F:/DE_Projects/job_posting/project/streaming_lake")
+
+# Root dirs default to THIS repo (portable), not the original F:/ project
+# location. Values (from .env or the environment) are normalized to ABSOLUTE
+# paths: Delta's create-table builder intermittently interprets a relative
+# 'sub/dir' location as a CATALOG NAME ("X is not a valid name" analysis
+# error). Same targets, just unambiguous - backward compatible.
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def _abs_root(value: str) -> str:
+    p = Path(value)
+    if not p.is_absolute():
+        p = Path(_REPO_ROOT, value)
+    return p.resolve().as_posix()
+
+
+CHECKPOINT_ROOT = _abs_root(os.getenv("CHECKPOINT_ROOT", os.path.join(_REPO_ROOT, "checkpoint")))
+DELTA_ROOT = _abs_root(os.getenv("DELTA_ROOT", os.path.join(_REPO_ROOT, "streaming_lake")))
 
 TOPICS = {
     "candidate": "candidate_events",
     "job": "job_events",
     "application": "application_events",
+    # ksqlDB emits this as JSON (see schemas/match_invalidation.avsc);
+    # consumed by the thin invalidation-writer query below.
+    "match_invalidation": "match_invalidation_events",
 }
 
 MATCH_WEIGHTS = {
@@ -1921,6 +1941,77 @@ def start_dimension_writers(spark: SparkSession):
     )
     return q1, q2, candidate_path, job_path
 
+
+# ---------------------------------------------------------------------------
+# Thin invalidation writer (business problems 1+2, invalidation leg).
+#
+# ksqlDB already turns job closing transitions into match_invalidation_events
+# (JSON, see schemas/match_invalidation.avsc). The match engine ALSO stops
+# scoring closed/filled/deleted jobs at intake (the job_dim filter above);
+# this query is the thin consumer side: it persists every invalidation event
+# as an append-only audit table so the invalidation flow is observable in
+# Delta and queryable by the acceptance tests. It deliberately does NOT
+# rewrite match_results in-place: appended match_results rows carry the
+# job's status at scoring time, and rematching happens naturally on the
+# next application batch after the job reopens (re-open flow in the
+# generator). Keeping this side-effect-free makes it fully backward
+# compatible with the existing match engine writer.
+# ---------------------------------------------------------------------------
+MATCH_INVALIDATION_SCHEMA = StructType([
+    # ksqlDB normalizes UNQUOTED identifiers to UPPERCASE, so the JSON legs
+    # emit JOB_ID/PRIOR_STATUS/... (verified on the wire).
+    StructField("JOB_ID", StringType()),
+    StructField("PRIOR_STATUS", StringType()),
+    StructField("REASON", StringType()),
+    StructField("INVALIDATION_TIME_MS", LongType()),
+    StructField("SOURCE_OP", StringType()),
+])
+
+# Delta table schema stays lowercase (matches schemas/match_invalidation.avsc,
+# the documented logical contract); renaming happens right after from_json.
+MATCH_INVALIDATION_DELTA_SCHEMA = StructType([
+    StructField("job_id", StringType()),
+    StructField("prior_status", StringType()),
+    StructField("reason", StringType()),
+    StructField("invalidation_time_ms", LongType()),
+    StructField("source_op", StringType()),
+])
+
+
+def start_invalidation_query(spark: SparkSession):
+    invalidations_path = f"{DELTA_ROOT}/match_invalidations"
+    ensure_delta_table(spark, invalidations_path, MATCH_INVALIDATION_DELTA_SCHEMA, {})
+
+    raw = (
+        spark.readStream.format("kafka")
+        .option("kafka.bootstrap.servers", KAFKA_BOOTSTRAP)
+        .option("subscribe", TOPICS["match_invalidation"])
+        .option("startingOffsets", "earliest")
+        .option("failOnDataLoss", "false")
+        .load()
+    )
+
+    parsed = raw.select(
+        F.from_json(F.col("value").cast("string"), MATCH_INVALIDATION_SCHEMA)
+        .alias("inv")
+    ).select(
+        F.col("inv.JOB_ID").alias("job_id"),
+        F.col("inv.PRIOR_STATUS").alias("prior_status"),
+        F.col("inv.REASON").alias("reason"),
+        F.col("inv.INVALIDATION_TIME_MS").alias("invalidation_time_ms"),
+        F.col("inv.SOURCE_OP").alias("source_op"),
+    ).filter(F.col("job_id").isNotNull())
+
+    q = (
+        parsed.writeStream
+        .queryName("match_invalidation_writer")
+        .outputMode("append")
+        .format("delta")
+        .option("checkpointLocation", f"{CHECKPOINT_ROOT}/match_invalidations")
+        .trigger(processingTime="30 seconds")
+        .start(invalidations_path)
+    )
+    return q, invalidations_path
 
 
 # ---------------------------------------------------------------------------
@@ -2466,7 +2557,15 @@ def process_application_batch(
         spark.read
         .format("delta")
         .load(job_path)
-        .filter(F.col("status") != "closed")
+        # Intake-time invalidation: jobs that are closed/filled/deleted/
+        # removed must NEVER be scored (business problems 1+2). coalesce()
+        # keeps the negation well-defined when status is NULL (a NULL
+        # status means "no signal yet" and stays eligible by default -
+        # same semantics as the previous 'status <> closed' check).
+        .filter(
+            ~F.lower(F.coalesce(F.col("status"), F.lit("")))
+            .isin("closed", "filled", "deleted", "removed")
+        )
         .select(*JOB_JOIN_COLS)
         .withColumn(
             "_dim_present",
@@ -2474,7 +2573,7 @@ def process_application_batch(
         )
     )
     metrics.files_read += _count_input_files(job_dim_raw)
-    _step_log(batch_id, "5-job_dim-read", "lazy plan built")
+    _step_log(batch_id, "5-job_dim-read", "lazy plan built (closed/filled/deleted jobs filtered)")
 
     # ============================================================
     # 6. Alias + cache dimension columns
@@ -3101,12 +3200,14 @@ def main():
 
     q_candidate, q_job, candidate_path, job_path = start_dimension_writers(spark)
     q_match = start_matching_query(spark, candidate_path, job_path)
+    q_invalidation, invalidations_path = start_invalidation_query(spark)
 
     print("=" * 60)
     print("Streaming queries started:")
     print(f"  candidate_dim:  {q_candidate.name}")
     print(f"  job_dim:        {q_job.name}")
     print(f"  match_engine:   {q_match.name}")
+    print(f"  invalidations:  {q_invalidation.name} -> {invalidations_path}")
     print(f"  batch metrics:  {METRICS_LOG_PATH}")
     print("=" * 60)
     print("Waiting for data... Press Ctrl+C to stop.")
@@ -3119,6 +3220,7 @@ def main():
         q_candidate.stop()
         q_job.stop()
         q_match.stop()
+        q_invalidation.stop()
         print("Done.")
 
 

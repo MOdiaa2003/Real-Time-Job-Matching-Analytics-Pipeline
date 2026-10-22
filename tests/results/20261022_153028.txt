@@ -1,0 +1,3 @@
+[2026-10-22 15:30:28] 03_job_state_invalidation : FAIL
+  - FAIL update had no effect: '02507771-701a-4e04-a643-fa17c057b9a3
+  - FAIL

@@ -1,0 +1,2 @@
+[2026-10-22 15:24:08] 02_dedup_dlq_integrity : FAIL
+  - FAIL could not record segment offsets

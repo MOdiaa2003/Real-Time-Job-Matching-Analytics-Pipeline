@@ -1,0 +1,3 @@
+[2026-10-22 15:30:10] 03_job_state_invalidation : FAIL
+  - FAIL source-db update failed: No module named 'psycopg2'
+  - FAIL

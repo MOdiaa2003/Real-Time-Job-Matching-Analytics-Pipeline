@@ -1,0 +1,4 @@
+[2026-10-22 16:26:45] 06_latency_freshness : PASS
+  - OK stream-processor running
+  - measured: events=24 distinct=24 p50=4519ms p95=5970ms max=6220ms (SLA target p95<= 10000ms)
+  - PASS latency probe

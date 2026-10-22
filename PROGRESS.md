@@ -70,3 +70,117 @@ DECISION (runtime): `docker compose up -d` hit a container-name conflict on `/qd
 - RESULT (verified live, 2026-10-22T12:05): job_metrics_5m = 327 rows; application_alerts = 4 rows (b) with candidate_id CAND_000009 + two tumbling alerts window sets (both from 147 events). All 7 ksql queries RUNNING, all 3 connectors RUNNING.
 - DECISION: keep Avro wire + Schema Registry BACKWARD as the contract; ksqlDB DDL persists in ksql/. (02, 03 include HONEST caveat comments in the SQL files.)
 - Blockers will be recorded in troubleshooting docs during Stage 6 (docs) - named 'ksql value-of-window does not carry group keys' etc.
+
+=====================================================================
+STAGE 5 - acceptance tests, match engine hardening, docs, ops (2026-10-22)
+=====================================================================
+SCOPE: make the six acceptance suites deterministically green in the
+official sequential run (tests/run_all.ps1), wire the Spark match
+engine into the invalidation flow additively, author docs + ops
+scripts + monitoring, README + requirements.txt.
+
+MATCH ENGINE (Realtime_Pipline/match_engine.py, additive only):
+- _abs_root(): DELTA_ROOT/CHECKPOINT_ROOT/.env relative values are
+  normalized to absolute repo-rooted paths. Relative paths
+  intermittently made DeltaTable.createIfNotExists treat "sub/dir"
+  as a catalog name ("not a valid name" analysis error).
+- Intake filter: scoring input excludes statuses
+  closed/filled/deleted/removed BEFORE scoring.
+- New TOPICS entry match_invalidation + thin writer query
+  start_invalidation_query -> match_invalidation_writer appends every
+  invalidation to streaming_lake/match_invalidations (Delta).
+- Wire schema: ksqlDB normalizes UNQUOTED identifiers to UPPERCASE, so
+  the invalidation JSON arrives as JOB_ID/PRIOR_STATUS/REASON/
+  INVALIDATION_TIME_MS/SOURCE_OP; from_json uses an uppercase
+  MATCH_INVALIDATION_SCHEMA and maps casing into the lowercase Delta
+  schema. Documented in schemas/match_invalidation.avsc comment.
+- Consumes from Kafka direct stream; verified end to end at runtime
+  (no changes to the Spark match scoring path itself).
+
+SUITE 03 SAGA (root causes, all real):
+1. ksql uppercase wire keys broke BOTH the test hit-check and the
+   engine's from_json (silent null drops) -> consumers map casing.
+2. Plain pyspark sessions lack the delta jars -> every Delta read in
+   the runner failed DATA_SOURCE_NOT_FOUND, and the runner's old
+   `except: pass` masked it as "table never populated". Fixed by
+   configuring spark.jars.packages exactly like the engine's
+   build_spark() (delta-spark pip does NOT put jars on the classpath).
+   The silent except now surfaces last_read_error in waiting lines.
+3. spark_leg_runner piped engine stdout into a pipe it never read;
+   Spark startup INFO could fill the 64KB pipe buffer and deadlock
+   the engine -> stdout/stderr to DEVNULL (judge engine liveness by
+   eng.poll(), not logs).
+4. Cold ivy/maven package resolution can take minutes (network);
+   that flapped suite 03 (16:38 FAIL then 16:40 PASS). Runner
+   deadline raised 380s -> 700s, subprocess timeout 600s -> 800s.
+   Warm-cache run completes in ~47s. Honest note: first-of-day runs
+   are slower by design; results are not invented.
+
+SUITE 02 HARDENING:
+- Drain criterion now requires a REAL lag=0 state: up to 12 probes
+  x 10s comparing committed offsets vs topic end offsets, honest WARN
+  receipt line if it never drains (instead of silently reconciling a
+  partially-drained segment, which caused one run_all FAIL). Solo +
+  run_all both PASS after this.
+
+RUN_ALL FIXES:
+- Per-suite receipts: tests/_common.ps1 dot-sourcing made
+  $PSScriptRoot = tests\\ (not the suite dir), so every suite wrote
+  receipts into one shared tests\\results\\ dir (timestamped twins
+  collided across suites). Suites now set $global:SUITE_HERE before
+  dot-sourcing; Write-Result writes under tests\\<suite>\\results\\.
+- Wall time column was cumulative since runner start -> now per-suite
+  ($suiteStart per iteration).
+- Suite output no longer swallowed (Out-String | Out-Null) -> visible
+  Select-Object -Last 30 per suite.
+- RESULTS.md "Run started" stamp was captured at WRITING time (end);
+  moved to actual start; header phrase corrected.
+
+LATENT CRASH FIX:
+- Broker auto-create is OFF but the engine's foreachBatch legacy path
+  still publishes to high_priority_matches -> topic was missing and
+  would have crashed the batch on first high-priority match. Added
+  New-Topic 'high_priority_matches' to scripts/create_topics.ps1 AND
+  created live; suite 01 now checks it.
+
+MONITORING VERIFIED LIVE:
+- monitoring/lag_report.ps1: 9 consumer groups, total_lag=0, PASS +
+  threshold exit code path verified.
+- monitoring/latency_report.py: empty-lookback crash (IndexError on
+  lat[-1] with events=0) fixed; honest "events=0 p50=- p95=- max=-"
+  line instead.
+- monitoring/load_test.ps1: venv mismatch fixed - generator needs
+  psycopg2 (.venv-gen), producer needs confluent-kafka
+  (.venv-streams); script now uses the right interpreter per role.
+
+SCRIPTS COMPLETED: scripts/setup.ps1, run.ps1, stop.ps1, reset.ps1,
+create_topics.ps1 (remote-friendly, idempotent), apply_ksql.ps1 (FULL
+ASCII, /ksql endpoint + trailing ;). reset.ps1 does docker compose
+down -v for THIS project only (previous project's containers renamed
+*_old_jobposting are preserved, never deleted).
+
+DOCS AUTHORING: docs/architecture.md (business-problem table, flow,
+probe questions, failure-mode coverage), docs/topics_and_keys.md
+(every topic: partitions/keys/format/contract, heartbeat + tombstone
+trade-off), docs/troubleshooting.md (numbered real gotchas incl. PS
+curl quote stripping, Connect plugin layering, JDBC sink issues, ksql
+behaviors, Spark-on-Windows, con.json reserved-name file),
+docs/interview_map.md (question -> file -> measured number). Root
+requirements.txt (pinned). README.md: "What's new - Kafka integration
+layer (2026)" with layer table, 7 documented trade-offs, acceptance
+table, demo operations, topic + stack updates.
+
+TEST RESULTS (official sequential run_all, 2026-10-22 16:41:50 start,
+per-suite receipts under tests/<suite>/results/):
+- 01_pipeline_health  PASS   3s  (30 checks incl. high_priority
+  topic exists + analytics window_start BIGINT)
+- 02_dedup_dlq_integrity PASS 66s (124 in = 66 unique + 52 DUPLICATE
+  + 6 BAD_WIRE_HEADER DLQ; zero unaccounted; lag=0 drain)
+- 03_job_state_invalidation PASS 47s (closed job 0f250d8e -> 10 topic
+  records -> HIT attempt 2 -> Delta total_rows=10)
+- 04_windowed_metrics PASS 1s (job_metrics_5m = 1084 rows; widths
+  only {300000, 600000}; no duplicate PKs)
+- 05_jdbc_sink_upsert PASS 41s (replay: PK rows 1/1, totals 1084/1084)
+- 06_latency_freshness PASS 52s (events=24 distinct=24; p50=4494ms
+  p95=5994ms max=6245ms <= 10000ms SLA)
+TOTAL: 6/6 PASS.

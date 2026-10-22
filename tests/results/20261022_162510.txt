@@ -1,0 +1,6 @@
+[2026-10-22 16:25:10] 03_job_state_invalidation : FAIL
+  - FAIL Delta match_invalidations did not receive 0cde98ff-1aea-4d0f-b4ec-77dc90d7915f within timeout
+  -      [Stage 3:==================================>                     (31 + 14) / 50]
+  -      
+  -                                                                                      
+  - FAIL

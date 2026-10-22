@@ -1,0 +1,5 @@
+[2026-10-22 16:16:59] 03_job_state_invalidation : PASS
+  - OK closed job 0c131ea8-8c0e-4ba8-9a41-38a54158bf74 in source db
+  - OK invalidation topic: 6 new record(s)
+  - OK specific invalidation for 0c131ea8-8c0e-4ba8-9a41-38a54158bf74: 1 hit(s)
+  - PASS

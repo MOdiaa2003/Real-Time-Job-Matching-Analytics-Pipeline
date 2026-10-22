@@ -1,0 +1,2 @@
+[2026-10-22 15:25:59] 05_jdbc_sink_upsert : FAIL
+  - OK connector jdbc-sink-job-metrics-5m RUNNING

@@ -1,0 +1,6 @@
+[2026-10-22 15:46:29] 03_job_state_invalidation : FAIL
+  - FAIL specific invalidation for 060c07b5-a321-48a0-b789-445689475157: 0 hit(s)
+  - FAIL Delta match_invalidations did not receive 060c07b5-a321-48a0-b789-445689475157 within timeout
+  -      Setting default log level to "WARN".
+  -      To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
+  - FAIL

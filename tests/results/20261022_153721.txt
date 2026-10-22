@@ -1,0 +1,6 @@
+[2026-10-22 15:37:21] 03_job_state_invalidation : FAIL
+  - FAIL specific invalidation for 04afdea5-7757-400d-acbb-64a84a214892: 0 hit(s)
+  - FAIL Delta match_invalidations did not receive 04afdea5-7757-400d-acbb-64a84a214892 within timeout
+  -      Setting default log level to "WARN".
+  -      To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
+  - FAIL

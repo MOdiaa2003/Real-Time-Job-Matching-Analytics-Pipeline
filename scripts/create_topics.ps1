@@ -64,6 +64,9 @@ New-Topic 'application_state_events' -P $partitions -Extra 'cleanup.policy=compa
 New-Topic 'match_invalidation_events' -P $partitions
 New-Topic 'job_metrics_5m'            -P $partitions
 New-Topic 'application_alerts'        -P $partitions
+# High-priority matches are published by the Spark match engine's foreachBatch
+# legacy path; without auto-create on, a missing topic would crash that batch.
+New-Topic 'high_priority_matches'     -P $partitions
 
 # DLQ topics (single partition: diagnostic streams keep order for humans)
 New-Topic 'dlq.application_submitted_events' -P 1

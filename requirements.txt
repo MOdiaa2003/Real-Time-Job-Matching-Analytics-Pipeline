@@ -1,0 +1,22 @@
+# Root requirements - one pinned file for the project's python tooling.
+#
+# Two venvs are used (scripts/setup.ps1 creates them):
+#   .venv-streams : librdkafka-based streaming tools (tests, monitoring)
+#   .venv-gen     : source-db + numpy tooling
+# pyspark/delta for the match engine are expected from the SYSTEM python
+# (see Realtime_Pipline/match_engine.py notes) and are listed at the bottom
+# for the interviewer's convenience, NOT installed into the venvs above.
+
+# streaming / kafka tooling (.venv-streams)
+quixstreams==3.14.0
+confluent-kafka[avro,json,schemaregistry]==2.9.0
+fastavro==1.13.1
+
+# source-db / generator tooling (.venv-gen)
+psycopg2-binary==2.9.10
+numpy==2.2.6
+python-dotenv==1.2.4
+
+# spark match engine (SYSTEM python, pinned versions exactly as run)
+pyspark==3.5.3
+delta-spark==3.2.0

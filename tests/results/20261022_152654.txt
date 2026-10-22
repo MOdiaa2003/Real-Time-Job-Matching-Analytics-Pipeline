@@ -1,0 +1,5 @@
+[2026-10-22 15:26:54] 05_jdbc_sink_upsert : FAIL
+  - OK connector jdbc-sink-job-metrics-5m RUNNING
+  - OK replaying record for JOB_000094 window[1792671600000..1792672200000] apps=2 matches=None
+  - OK record re-produced
+  - FAIL PK rows before/after: 1/1; total: 474/474; row now: 2/0

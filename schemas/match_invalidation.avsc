@@ -1,5 +1,5 @@
 {
-  "comment": "match_invalidation_events - DOCUMENTED CONTRACT. This topic is emitted by ksqlDB as JSON (not Avro) because its primary consumer is the Spark match engine, which already parses JSON natively; forcing Avro here would require Spark Schema-Registry integration (ABRIS/from_avro) for zero benefit. This .avsc is the schema of record: it is pre-registered + compatibility-checked in the registry demo (tests/03) so anyone switching the topic to Avro later has a registered, compatible evolution path.",
+  "comment": "match_invalidation_events - DOCUMENTED CONTRACT. This topic is emitted by ksqlDB as JSON (not Avro) because its primary consumer is the Spark match engine, which already parses JSON natively; forcing Avro here would require Spark Schema-Registry integration (ABRIS/from_avro) for zero benefit. This .avsc is the schema of record: it is pre-registered + compatibility-checked in the registry demo (tests/03) so anyone switching the topic to Avro later has a registered, compatible evolution path. NOTE on the wire: ksqlDB normalizes unquoted identifiers to UPPERCASE, so the JSON legs actually emit keys JOB_ID / PRIOR_STATUS / REASON / INVALIDATION_TIME_MS / SOURCE_OP against this lowercase logical contract - consumers must map the casing.",
   "namespace": "com.talentradar.invalidation",
   "type": "record",
   "name": "MatchInvalidation",

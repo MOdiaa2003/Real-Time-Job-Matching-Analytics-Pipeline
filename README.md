@@ -1,16 +1,69 @@
 # Real-Time Candidate–Job Matching Pipeline
 
-An end-to-end recruitment data platform that simulates candidate, job, and application activity in PostgreSQL, captures database changes through Debezium and Kafka-compatible Redpanda, and processes those changes through **two independent data paths**:
+An end-to-end recruitment data platform that simulates candidate, job, and application activity in PostgreSQL, captures database changes through Debezium and Kafka-compatible Redpanda, and processes those changes through **multiple independent data paths**:
 
 - **Streaming matching path:** scores applications in near real time with Spark Structured Streaming and writes match results to Delta Lake. High-priority matches are also published to Kafka.
 - **Batch medallion path:** lands raw CDC events in Bronze, cleans and validates them in Silver, and builds a dimensional analytics model in Gold.
+- **Kafka integration path (2026 addition):** a production-style Kafka layer for duplicate rejection, job-state invalidation, windowed recruiter statistics, spam alerts, and JDBC sinks into a separate analytics PostgreSQL - built without any Java code of our own (Quix Streams + ksqlDB).
 
 The project demonstrates CDC, stream processing, data quality, Delta Lake upserts, dimensional modeling, and pipeline observability. It was developed and run on Windows.
 
 > **Project status:** The streaming pipeline and batch medallion components are the core of the project. A Qdrant-based recruitment intelligence/RAG layer is in progress; see [Roadmap](#roadmap).
 
+## What's new — Kafka integration layer (2026)
+
+A second, business-facing Kafka layer now runs alongside the Spark match engine:
+
+| Layer | Tech | Deliverable |
+|---|---|---|
+| Web-event ingestion & dedup | Quix Streams (python), exactly-once, `docker` service `stream-processor` | `application_submitted_events` -> stateful `application_submitted_dedup` (Avro + Schema Registry) with every reject going to a DLQ |
+| Job state / invalidation | ksqlDB 7.6.1 (`ksql/01..04.sql`) | `job_state` KTABLE, closed/filled/deleted invalidation stream + stream-table JOIN prevention leg -> `match_invalidation_events` |
+| Live recruiter statistics | ksqlDB windowed CTAS | 5-min tumbling + 10-min hopping windows -> `job_metrics_5m` (Avro) |
+| Spam/anomaly detection | ksqlDB CTAS | candidates exceeding application-rate threshold -> `application_alerts` |
+| Analytics serving | Debezium JDBC Sink Connector (built image `docker/kafka-connect-extended.Dockerfile`) | upserts into PostgreSQL **analytics** DB (`job_metrics_5m`, `application_alerts`, `job_current_state`) |
+| Fault injection & proof | synthetic producer + 6 acceptance suites (`tests/`) | duplicates, malformed payloads, closed-job flows, window math, sink replay idempotency, latency SLA |
+
+### Documented trade-offs you will be asked about
+
+1. **ksqlDB group-by keys are not in windowed-table values.** The JDBC sink would have no `job_id` column, so the aggregating queries re-project the key into the value via `LATEST_BY_OFFSET(job_id) AS JOB_ID_FLAT` (documented in `ksql/03_windowed_metrics.sql`). The alias must differ from the key column name; otherwise ksql rejects the duplicate value column.
+2. **ksql windowed keys are a proprietary binary blob**, not JSON — the JDBC sinks therefore use `key.converter=org.apache.kafka.connect.storage.StringConverter`, and the value fields are renamed by a `ReplaceField$Value` SMT (`JOB_ID_FLAT -> job_id`, `WINDOW_START/WINDOW_END -> window_start/window_end`; `RenameField` does not exist in Kafka 3.7 transforms). `quote.identifiers=false` (the live config key - **not** `quote.sql.identifiers`) keeps Postgres from case-folding.
+3. **Window columns are BIGINT epoch-millis**, not TIMESTAMP: ksqlDB exposes `WINDOWSTART`/`WINDOWEND` as BIGINT and Debezium maps Avro `long` -> Postgres `BIGINT`. `database/init_analytics.sql` declares them BIGINT for exactly this reason.
+4. **`__debezium-heartbeat.talent`** is Debezium's heartbeat topic; it is pre-created in `scripts/create_topics.ps1` so monitors never see a transient missing-topic state.
+5. **`enable.thread.pin` was removed** from the producer config: it existed in older librdkafka builds and confluent-kafka 2.9 rejects it as an unknown property.
+6. **CDC topics stay JSON; the dedup boundary is Avro.** `application_submitted_events` and its outputs are Confluent-wire Avro with Schema Registry back-compat (BACKWARD); raw CDC and `match_invalidation_events` stay JSON on purpose (Spark consumes natively; `schemas/match_invalidation.avsc` is the registered schema of record for that contract, including the note that ksqlDB uppercases unquoted identifiers on the wire).
+7. **`tombstones.on.delete=false`** on the source connector: delete events keep a full `before` payload so ksql/Quix can still parse them; the COMPACTED state topics carry table semantics instead of relying on tombstone compaction of the CDC topics.
+
+### Acceptance tests (all runnable, results are recorded, never invented)
+
+```
+powershell -ExecutionPolicy Bypass -File tests\run_all.ps1
+```
+
+| Suite | Proves |
+|---|---|
+| `01_pipeline_health` | containers, topics, connectors, ksql persistent queries, analytics schema |
+| `02_dedup_dlq_integrity` | per-`event_id` accounting: e.g. real run 116 in = 60 unique + 44 DUPLICATE-DLQ + 12 BAD_WIRE_HEADER-DLQ, zero unaccounted |
+| `03_job_state_invalidation` | SQL close -> Debezium -> ksql legs -> topic record -> Spark Delta `match_invalidations` row |
+| `04_windowed_metrics` | `job_metrics_5m` rows with only 300000/600000 ms window widths, no duplicate PKs |
+| `05_jdbc_sink_upsert` | replaying a real `job_metrics_5m` record changes neither PK count nor totals |
+| `06_latency_freshness` | end-to-end producer->dedup p95 (measured 5996 ms; SLA 10000 ms) |
+
+### Demo operations
+
+```powershell
+scripts\setup.ps1   # bootstrap: venvs + images + containers + topics + connectors + ksql (idempotent)
+scripts\run.ps1     # containers + Spark match engine + optional generators (background, logged)
+scripts\stop.ps1    # stop helpers + docker compose stop (volumes kept)
+scripts\reset.ps1   # full teardown -v (THIS project only) + rebuild
+```
+
+Monitoring: `monitoring\lag_report.ps1` (consumer lag + threshold exit code), `monitoring\latency_report.py` (p50/p95 vs 10 s SLA), `monitoring\load_test.ps1` (drives the real producer with fault knobs).
+
+Details: `docs\architecture.md`, `docs\topics_and_keys.md`, `docs\troubleshooting.md` (real gotchas that bit this build), `docs\interview_map.md` (question -> code -> measured number).
+
 ## Table of contents
 
+- [What's new — Kafka integration layer (2026)](#whats-new--kafka-integration-layer-2026)
 - [Architecture](#architecture)
 - [Technology stack](#technology-stack)
 - [Main components](#main-components)
@@ -33,11 +86,18 @@ The Python generator writes to PostgreSQL only. Debezium captures committed data
 </p>
 ### Event topics
 
-| Topic | Source entity |
+| Topic | Source entity / producer |
 |---|---|
-| `candidate_events` | `public.candidate_info` |
-| `job_events` | `public.job_posts` |
-| `application_events` | `public.applications` |
+| `candidate_events` | `public.candidate_info` (Debezium CDC) |
+| `job_events` | `public.job_posts` (Debezium CDC) |
+| `application_events` | `public.applications` (Debezium CDC) |
+| `application_submitted_events` | Kafka-native Avro producer (synthetic web events; dedup input) |
+| `application_submitted_dedup` | Quix Streams stateful dedup output (exactly-once) |
+| `job_state_events` / `application_state_events` | Quix CDC projections (compacted tables for ksql) |
+| `match_invalidation_events` | ksqlDB invalidation legs (closed/filled/deleted jobs) |
+| `job_metrics_5m` | ksqlDB windowed aggregates (5m tumbling + 10m hopping) |
+| `application_alerts` | ksqlDB spam/anomaly detection |
+| `dlq.*` | dead-letter queues for duplicates, malformed payloads, projection and sink errors |
 | `high_priority_matches` | Published by the streaming engine for high-priority matches |
 
 The Debezium connector uses the PostgreSQL `pgoutput` plugin and routes source-table changes to the three event topics. The generator does **not** publish directly to Kafka.
@@ -45,9 +105,10 @@ The Debezium connector uses the PostgreSQL `pgoutput` plugin and routes source-t
 ## Technology stack
 
 - **Language and processing:** Python, PySpark, Apache Spark Structured Streaming, Spark SQL
-- **Database and CDC:** PostgreSQL 17, Debezium 2.7.3, Kafka Connect
-- **Messaging:** Redpanda (Kafka API), Redpanda Console
-- **Storage and analytics:** Delta Lake
+- **Kafka-native streaming:** Quix Streams 3.14 (python), ksqlDB 7.6.1 (SQL without Java)
+- **Database and CDC:** PostgreSQL 17, Debezium 2.7.3 (+ Debezium JdbcSinkConnector 2.7.3, Kafka Connect 3.7)
+- **Messaging:** Redpanda (Kafka API), Redpanda Console, Schema Registry (Confluent 7.6.1)
+- **Storage and analytics:** Delta Lake, analytics PostgreSQL (JDBC sink target)
 - **Vector search / AI extension:** Qdrant (RAG layer in progress)
 - **Local environment:** Docker Compose, Windows
 

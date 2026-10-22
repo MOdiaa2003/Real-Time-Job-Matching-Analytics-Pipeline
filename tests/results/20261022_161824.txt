@@ -1,0 +1,13 @@
+[2026-10-22 16:18:24] 02_dedup_dlq_integrity : FAIL
+  - OK stream-processor running
+  - OK producer run: DONE: {'sent': 112, 'duplicated': 40, 'malformed': 10, 'late': 0, 'burst': 0, 'failed': 0}
+  - OK waited for processor drain (lag probing x1)
+  - FAIL segment reconciliation:
+  -   FAIL
+  -     OK dedup output decodable records: output_unparsable=0
+  -     OK DLQ records are parseable JSON (dlq_codes={'DUPLICATE': 40, 'BAD_WIRE_HEADER': 9, 'SCHEMA_LOOKUP_FAILED': 1})
+  -     FAIL malformed input -> DLQ: input_bad_wire=10 dlq={'DUPLICATE': 40, 'BAD_WIRE_HEADER': 9, 'SCHEMA_LOOKUP_FAILED': 1}
+  -     OK replayed copies -> DLQ: input_replays=40 dlq_duplicate=40
+  -     OK no event lost without output/DLQ trace (missing=[])
+  -     OK per-id accounting holds for all ids (first_mismatch=[])
+  -   summary: input_decodable=62 input_replays=40 input_bad_wire=10 output_rows=62 dlq={'DUPLICATE': 40, 'BAD_WIRE_HEADER': 9, 'SCHEMA_LOOKUP_FAILED': 1}

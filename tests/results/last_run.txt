@@ -1,0 +1,5 @@
+[2026-10-22 16:40:06] 03_job_state_invalidation : PASS
+  - OK closed job 0db6c03b-cbce-4627-90c9-bbcba2ae3a44 in source db
+  - OK invalidation topic: 9 new record(s)
+  - OK specific invalidation for 0db6c03b-cbce-4627-90c9-bbcba2ae3a44: 1 hit(s)
+  - PASS

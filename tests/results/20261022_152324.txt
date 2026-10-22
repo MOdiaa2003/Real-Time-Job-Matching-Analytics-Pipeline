@@ -1,0 +1,5 @@
+[2026-10-22 15:23:24] 02_dedup_dlq_integrity : PASS
+  - OK stream-processor running
+  - OK producer ran: 
+  - OK waited for processor drain (lag probing x1)
+  - OK segment reconciliation: 100% accounting (see below)

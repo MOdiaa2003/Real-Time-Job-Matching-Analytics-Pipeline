@@ -1,0 +1,5 @@
+[2026-10-22 15:58:29] 03_job_state_invalidation : FAIL
+  - FAIL Delta match_invalidations did not receive 085e56a0-781c-4cfa-b214-1d9a84767a4b within timeout
+  -      Setting default log level to "WARN".
+  -      To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
+  - FAIL
