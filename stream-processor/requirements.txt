@@ -1,0 +1,5 @@
+# Pinned for reproducible builds (verified installable on Python 3.11/Windows)
+quixstreams==3.14.0
+confluent-kafka[avro,json,schemaregistry]==2.9.0
+fastavro==1.13.1
+requests>=2.31,<3

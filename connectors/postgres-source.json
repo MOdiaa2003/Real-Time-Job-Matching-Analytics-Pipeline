@@ -13,9 +13,7 @@
     "  Connect REST API (GET /connectors/{name}/tasks/{id}/errors)."
   ],
   "config": {
-    "name": "__CONNECTOR_NAME__",
-    "config": {
-      "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
 
       "database.hostname": "__DEBEZIUM_DB_HOST__",
       "database.port": "__POSTGRES_PORT_INTERNAL__",
@@ -55,6 +53,5 @@
       "errors.tolerance": "all",
       "errors.log.enable": "true",
       "errors.log.include.message": "true"
-    }
   }
 }

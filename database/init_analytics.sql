@@ -4,22 +4,25 @@
 -- ─────────────────────────────────────────────────────────────────────
 
 -- 5-minute windowed job/application aggregates from ksqlDB
+-- NB: window_start/window_end are BIGINT epoch-millis because ksqlDB
+-- exposes WINDOWSTART/WINDOWEND pseudo-columns as BIGINT and Debezium's
+-- JdbcSinkConnector maps Avro long -> BIGINT, not TIMESTAMPTZ.
 CREATE TABLE IF NOT EXISTS job_metrics_5m (
     job_id            VARCHAR(50)  NOT NULL,
-    window_start      TIMESTAMP    NOT NULL,
-    window_end        TIMESTAMP    NOT NULL,
+    window_start      BIGINT       NOT NULL,
+    window_end        BIGINT       NOT NULL,
     applications_cnt  BIGINT       DEFAULT 0,
     matches_cnt       BIGINT       DEFAULT 0,
     updated_at        TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (job_id, window_start, window_end)
 );
 
--- Spam/anomaly detection output
+-- Spam/anomaly detection output (window columns: epoch-millis, see above)
 CREATE TABLE IF NOT EXISTS application_alerts (
     alert_id          SERIAL,
     candidate_id      VARCHAR(50)  NOT NULL,
-    window_start      TIMESTAMP    NOT NULL,
-    window_end        TIMESTAMP    NOT NULL,
+    window_start      BIGINT       NOT NULL,
+    window_end        BIGINT       NOT NULL,
     applications_cnt  BIGINT       NOT NULL,
     alert_reason      VARCHAR(100),
     updated_at        TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,

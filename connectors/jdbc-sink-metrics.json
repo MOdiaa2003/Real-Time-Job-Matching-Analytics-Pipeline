@@ -1,7 +1,9 @@
-{
+﻿{
   "name": "jdbc-sink-job-metrics-5m",
   "notes": [
     "SINK connector -> analytics PostgreSQL job_metrics_5m (5-min windowed recruiter stats).",
+    "Uses io.debezium.connector.jdbc.JdbcSinkConnector (2.7.3.Final - SAME version as the",
+    "  Debezium source in this image, ships with debezium/connect, zero extra plugin risk).",
     "Insert mode UPSERT on PK (job_id, window_start, window_end): re-processing/at-least-once",
     "  delivery from ksqlDB does not inflate stored counts (idempotent sink).",
     "pk.mode=record_value: the PRIMARY KEY is taken from value fields - the record key on this",
@@ -14,32 +16,33 @@
     "DLQ topic(s) must exist beforehand because broker auto.create=false: scripts/create_topics.ps1."
   ],
   "config": {
-    "name": "__CONNECTOR_NAME__",
-    "config": {
-      "connector.class": "io.confluent.connect.jdbc.JdbcSinkConnector",
-      "topics": "job_metrics_5m",
+    "connector.class": "io.debezium.connector.jdbc.JdbcSinkConnector",
+    "topics": "job_metrics_5m",
 
-      "connection.url": "jdbc:postgresql://postgres-analytics:5432/__ANALYTICS_DB_NAME__",
-      "connection.user": "__ANALYTICS_DB_USER__",
-      "connection.password": "__ANALYTICS_DB_PASSWORD__",
+    "connection.url": "jdbc:postgresql://postgres-analytics:5432/__ANALYTICS_DB_NAME__",
+    "connection.username": "__ANALYTICS_DB_USER__",
+    "connection.password": "__ANALYTICS_DB_PASSWORD__",
 
-      "insert.mode": "upsert",
-      "pk.mode": "record_value",
-      "pk.fields": "job_id,window_start,window_end",
-      "delete.enabled": "false",
-      "behavior.on.null.values": "IGNORE",
+    "insert.mode": "upsert",
+    "primary.key.mode": "record_value",
+    "primary.key.fields": "job_id,window_start,window_end",
+    "quote.identifiers": "false",
+    "delete.enabled": "false",
 
-      "value.converter": "io.confluent.connect.avro.AvroConverter",
-      "value.converter.schema.registry.url": "http://schema-registry:8081",
-      "key.converter": "org.apache.kafka.connect.json.JsonConverter",
-      "key.converter.schemas.enable": "false",
+    "transforms": "flatkey",
+    "transforms.flatkey.type": "org.apache.kafka.connect.transforms.ReplaceField$Value",
+    "transforms.flatkey.renames": "JOB_ID_FLAT:job_id,WINDOW_START:window_start,WINDOW_END:window_end",
 
-      "errors.tolerance": "all",
-      "errors.retry.timeout": "15000",
-      "errors.retry.delay.max.ms": "60000",
-      "errors.deadletterqueue.topic.name": "dlq.jdbc_sink_metrics",
-      "errors.deadletterqueue.context.headers.enable": "true",
-      "errors.deadletterqueue.context.headers.prefix": "__dlq__"
-    }
+    "value.converter": "io.confluent.connect.avro.AvroConverter",
+    "value.converter.schema.registry.url": "http://schema-registry:8081",
+    "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+    "key.converter.schemas.enable": "false",
+
+    "errors.tolerance": "all",
+    "errors.retry.timeout": "15000",
+    "errors.retry.delay.max.ms": "60000",
+    "errors.deadletterqueue.topic.name": "dlq.jdbc_sink_metrics",
+    "errors.deadletterqueue.context.headers.enable": "true",
+    "errors.deadletterqueue.context.headers.prefix": "__dlq__"
   }
 }

@@ -93,7 +93,8 @@ def main():
         "acks": "all",
         "compression.type": "lz4",
         "linger.ms": 5,
-        "enable.thread.pin": False,   # avoid stuck flush when Ctrl-C
+        # NOTE: 'enable.thread.pin' existed in older librdkafka builds;
+        # confluent-kafka 2.9 rejects it as an unknown property - dropped.
         "message.timeout.ms": 60000,
     })
 

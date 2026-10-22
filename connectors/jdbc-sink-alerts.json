@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "jdbc-sink-application-alerts",
   "notes": [
     "SINK connector -> analytics PostgreSQL application_alerts (spam/anomaly alerts).",
@@ -8,32 +8,33 @@
     "   init SQL is informational. Conflicting alerts for the same window upsert (over-apply usage)."
   ],
   "config": {
-    "name": "__CONNECTOR_NAME__",
-    "config": {
-      "connector.class": "io.confluent.connect.jdbc.JdbcSinkConnector",
-      "topics": "application_alerts",
+    "connector.class": "io.debezium.connector.jdbc.JdbcSinkConnector",
+    "topics": "application_alerts",
 
-      "connection.url": "jdbc:postgresql://postgres-analytics:5432/__ANALYTICS_DB_NAME__",
-      "connection.user": "__ANALYTICS_DB_USER__",
-      "connection.password": "__ANALYTICS_DB_PASSWORD__",
+    "connection.url": "jdbc:postgresql://postgres-analytics:5432/__ANALYTICS_DB_NAME__",
+    "connection.username": "__ANALYTICS_DB_USER__",
+    "connection.password": "__ANALYTICS_DB_PASSWORD__",
 
-      "insert.mode": "upsert",
-      "pk.mode": "record_value",
-      "pk.fields": "candidate_id,window_start,window_end",
-      "delete.enabled": "false",
-      "behavior.on.null.values": "IGNORE",
+    "insert.mode": "upsert",
+    "primary.key.mode": "record_value",
+    "primary.key.fields": "candidate_id,window_start,window_end",
+    "quote.identifiers": "false",
+    "delete.enabled": "false",
 
-      "value.converter": "io.confluent.connect.avro.AvroConverter",
-      "value.converter.schema.registry.url": "http://schema-registry:8081",
-      "key.converter": "org.apache.kafka.connect.json.JsonConverter",
-      "key.converter.schemas.enable": "false",
+    "transforms": "flatkey",
+    "transforms.flatkey.type": "org.apache.kafka.connect.transforms.ReplaceField$Value",
+    "transforms.flatkey.renames": "CANDIDATE_ID_FLAT:candidate_id,WINDOW_START:window_start,WINDOW_END:window_end",
 
-      "errors.tolerance": "all",
-      "errors.retry.timeout": "15000",
-      "errors.retry.delay.max.ms": "60000",
-      "errors.deadletterqueue.topic.name": "dlq.jdbc_sink_alerts",
-      "errors.deadletterqueue.context.headers.enable": "true",
-      "errors.deadletterqueue.context.headers.prefix": "__dlq__"
-    }
+    "value.converter": "io.confluent.connect.avro.AvroConverter",
+    "value.converter.schema.registry.url": "http://schema-registry:8081",
+    "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+    "key.converter.schemas.enable": "false",
+
+    "errors.tolerance": "all",
+    "errors.retry.timeout": "15000",
+    "errors.retry.delay.max.ms": "60000",
+    "errors.deadletterqueue.topic.name": "dlq.jdbc_sink_alerts",
+    "errors.deadletterqueue.context.headers.enable": "true",
+    "errors.deadletterqueue.context.headers.prefix": "__dlq__"
   }
 }

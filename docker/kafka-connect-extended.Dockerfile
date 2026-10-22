@@ -1,41 +1,52 @@
-# Kafka Connect worker: Debezium 2.7.3 + Confluent JDBC sink plugin.
+# Kafka Connect worker: Debezium 2.7.3 + JDBC sink plugin + Avro converter.
 #
 # Why a custom image: the debezium/connect base image ships Debezium
-# source connectors (PostgreSQL etc.) but NOT the Confluent JDBC sink
-# connector. The analytics PostgreSQL sink (job_metrics_5m,
-# application_alerts with upsert mode) needs the JDBC plugin + drivers.
+# source connectors but NOT the Confluent JDBC sink connector, and NOT
+# the Avro converter that sinks need to read ksqlDB's Avro output.
 #
-# Note on licensing: the Confluent JDBC connector is under the Confluent
-# Community License; fine for a local demo/education project, and it is
-# the standard JDBC sink in production Confluent stacks.
+# Sourcing (network-constrained environment): the Confluent Hub CDN
+# (cloudfront) is DNS-blocked here, so jars are assembled from Maven
+# artifacts + the pinned cp-kafka-connect image instead:
+#   STAGE 1 (avro-converter): copies the complete self-contained
+#     kafka-connect-avro-converter plugin (converter + schema-registry
+#     client + deps, all 7.6.1) out of confluentinc/cp-kafka-connect.
+#   STAGE 2 (final): debezium/connect:2.7.3.Final, plus
+#     - kafka-connect-jdbc 10.7.3 (io.confluent, Confluent Community License)
+#       + common-config 7.6.1 / common-utils 7.6.1 +
+#       postgresql-42.7.4 driver (Postgres-only demo; the Hub zip's
+#       Oracle/MSSQL/MySQL driver set is intentionally omitted)
+#     - the Avro converter plugin from stage 1
+#
+# NOTE: the Debezium image ALSO ships io.debezium.connector.jdbc.JdbcSinkConnector
+# (version-matched 2.7.3.Final). The sink connectors in connectors/*.json use
+# THAT one; the Confluent kafka-connect-jdbc plugin is kept for completeness/
+# interview discussion of plugin isolation.
+FROM confluentinc/cp-kafka-connect:7.6.1 AS avro-converter
 
+# connect-api/connect-runtime are `provided` by the worker - never bundle them
 FROM debezium/connect:2.7.3.Final
 
 USER root
 
-# The base image varies by OS package manager across versions; handle all.
-RUN microdnf install -y unzip curl 2>/dev/null || \
-    apt-get update && apt-get install -y --no-install-recommends unzip curl && \
-    rm -rf /var/lib/apt/lists/* || \
-    apk add --no-cache unzip curl
+ENV PKG=https://packages.confluent.io/maven \
+    MC=https://repo1.maven.org/maven2
 
-# Confluent JDBC sink connector 10.7.1 (matches CP 7.6 line used for
-# cp-ksqldb-server / cp-schema-registry in this stack).
+# Base image loads plugins from CONNECT_PLUGIN_PATH=/kafka/connect
 RUN set -eux; \
-    cd /tmp; \
-    curl -fSLo jdbc.zip https://d2p6pa8d64rpfa.cloudfront.net/confluentinc-kafka-connect-jdbc-10.7.1.zip; \
-    unzip -o jdbc.zip -d /kafka/plugins; \
-    rm -rf jdbc.zip; \
-    # Ensure the PostgreSQL JDBC driver exists next to the connector
-    for drv in /kafka/plugins/kafka-connect-jdbc/postgresql-*.jar; do \
-      if [ ! -e "$$drv" ]; then \
-        curl -fSLo /kafka/plugins/kafka-connect-jdbc/postgresql-42.7.4.jar \
-          https://repo1.maven.org/maven2/org/postgresql/postgresql/42.7.4/postgresql-42.7.4.jar; \
-      fi; \
-    done
+    mkdir -p /kafka/connect/kafka-connect-jdbc; \
+    cd /kafka/connect/kafka-connect-jdbc; \
+    curl -fSLo kafka-connect-jdbc-10.7.3.jar \
+      "$PKG/io/confluent/kafka-connect-jdbc/10.7.3/kafka-connect-jdbc-10.7.3.jar"; \
+    curl -fSLo common-config-7.6.1.jar \
+      "$PKG/io/confluent/common-config/7.6.1/common-config-7.6.1.jar"; \
+    curl -fSLo common-utils-7.6.1.jar \
+      "$PKG/io/confluent/common-utils/7.6.1/common-utils-7.6.1.jar"; \
+    curl -fSLo postgresql-42.7.4.jar \
+      "$MC/org/postgresql/postgresql/42.7.4/postgresql-42.7.4.jar"; \
+    ls -la /kafka/connect/kafka-connect-jdbc
 
-# Debezium images resolve the plugin path from this env; keep all default
-# locations plus the JDBC connector.
-ENV CONNECT_PLUGIN_PATH=/kafka/plugins,/kafka/connect
+COPY --from=avro-converter /usr/share/java/kafka-serde-tools  /kafka/connect/kafka-connect-avro-converter/
+COPY --from=avro-converter /usr/share/java/confluent-common   /kafka/connect/kafka-connect-avro-converter/
+COPY --from=avro-converter /usr/share/java/cp-base-new        /kafka/connect/kafka-connect-avro-converter/
 
-USER kafkaconnect
+USER kafka

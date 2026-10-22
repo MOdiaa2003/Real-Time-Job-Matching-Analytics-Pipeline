@@ -32,7 +32,8 @@ $envFile = Join-Path $repoRoot '.env'
 if (Test-Path $envFile) {
     Get-Content $envFile | ForEach-Object {
         if ($_ -match '^\s*([^#=\s]+)\s*=\s*(.*)\s*$') {
-            $k = $matches[1]; $v = $matches[2]
+            $k = $matches[1]
+            $v = ($matches[2] -replace '\s+#.*$', '').Trim()
             if (-not (Get-Item "env:$k" -ErrorAction SilentlyContinue)) { Set-Item "env:$k" $v }
         }
     }
@@ -206,11 +207,13 @@ if (-not $SkipSinks) {
 # 4. pre-seed Avro subjects
 if ($RegisterSchemas) {
     Write-Host "`n── Pre-seeding Avro subjects under BACKWARD compatibility ..."
+    # ONLY the producer-owned subjects are pre-seeded. ksqlDB registers its
+    # own generated schemas for job_metrics_5m / application_alerts /
+    # match_invalidation_events at CREATE time (creating them here would
+    # fight ksqlDB's schema shape and break the BACKWARD check).
     $subjects = @{
         'application_submitted_events-value' = 'application_submitted_event.avsc'
         'application_submitted_dedup-value'  = 'application_submitted_dedup.avsc'
-        'job_metrics_5m-value'               = 'job_metrics_5m.avsc'
-        'application_alerts-value'           = 'application_alert.avsc'
     }
     foreach ($subject in $subjects.Keys) {
         $schemaJson = Get-Content (Join-Path $PSScriptRoot "..\schemas\$($subjects[$subject])") -Raw

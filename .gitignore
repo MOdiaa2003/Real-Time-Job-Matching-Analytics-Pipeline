@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+
+# Local virtualenvs (rebuild with scripts/setup.ps1 requirements)
+.venv-gen/
+.venv-streams/
+
+# Spark runtime state (heavy, reproducible)
+checkpoint/
+streaming_lake/
+
+# Container logs / throwaway payloads
+logs/
+*.log
