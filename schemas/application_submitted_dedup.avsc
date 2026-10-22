@@ -1,0 +1,20 @@
+{
+  "comment": "application_submitted_dedup - output of the Quix Streams stateful dedup. Same field set as application_submitted_event (first occurrence forwarded unchanged) plus dedup provenance fields for observability.",
+  "namespace": "com.talentradar.events",
+  "type": "record",
+  "name": "ApplicationSubmittedDedup",
+  "doc": "Exactly one record per event_id within the state retention window.",
+  "fields": [
+    { "name": "event_id",         "type": "string" },
+    { "name": "candidate_id",     "type": "string" },
+    { "name": "job_id",           "type": "string" },
+    { "name": "application_id",   "type": ["null", "string"], "default": null },
+    { "name": "status",           "type": "string", "default": "submitted" },
+    { "name": "applied_at",       "type": "string" },
+    { "name": "event_time_ms",    "type": "long" },
+    { "name": "produced_at_ms",   "type": "long", "default": -1 },
+    { "name": "source",           "type": "string", "default": "web_app" },
+    { "name": "trace_id",         "type": ["null", "string"], "default": null },
+    { "name": "is_first_seen",    "type": "boolean", "default": true, "doc": "always true on this topic - duplicates are dropped upstream" }
+  ]
+}

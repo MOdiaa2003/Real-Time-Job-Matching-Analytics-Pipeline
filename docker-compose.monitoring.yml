@@ -1,0 +1,60 @@
+# Optional observability profile:
+#   docker compose -f docker-compose.yml -f docker-compose.monitoring.yml --profile monitoring up -d
+#
+# Honest scoping: kafka_exporter (danielqsj) exposes CONSUMER-GROUP LAG
+# per group/topic/partition and per-topic message rates (throughput).
+# It does not instrument the Python/Spark processors; per-app metrics
+# remain in logs and the Prometheus index is broker-side only.
+services:
+
+  kafka-exporter:
+    image: danielqsj/kafka_exporter:v1.8.0
+    container_name: kafka-exporter
+    depends_on:
+      kafka:
+        condition: service_healthy
+    command:
+      - "--kafka.server=kafka:29092"
+      - "--web.listen-address=:9210"
+    ports:
+      - "9210:9210"
+    networks:
+      - spark-network
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: prometheus
+    depends_on:
+      - kafka-exporter
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - spark-network
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: grafana
+    depends_on:
+      - prometheus
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    networks:
+      - spark-network
+
+volumes:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  spark-network:
+    external: true
+    name: real-time-job-matching-analytics-pipeline_spark-network

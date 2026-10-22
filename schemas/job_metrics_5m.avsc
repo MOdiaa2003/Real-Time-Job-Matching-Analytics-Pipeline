@@ -1,0 +1,15 @@
+{
+  "comment": "job_metrics_5m - windowed aggregates emitted by ksqlDB. window_type distinguishes the 5m TUMBLING window from the hopping window in the same topic. window start/end use the Avro logicalType timestamp-millis so the JDBC sink maps them to PostgreSQL TIMESTAMP columns directly.",
+  "namespace": "com.talentradar.metrics",
+  "type": "record",
+  "name": "JobMetrics5m",
+  "doc": "Per-job aggregate over a 5-minute event-time window (EMIT on window close after the grace period).",
+  "fields": [
+    { "name": "job_id",           "type": "string" },
+    { "name": "window_start",     "type": { "type": "long", "logicalType": "timestamp-millis" }, "doc": "window start, epoch ms" },
+    { "name": "window_end",       "type": { "type": "long", "logicalType": "timestamp-millis" }, "doc": "window end, epoch ms" },
+    { "name": "window_type",      "type": "string", "default": "tumbling_5m", "doc": "tumbling_5m | hopping_10m_step_5m" },
+    { "name": "applications_cnt", "type": "long", "default": 0, "doc": "deduplicated applications per job in the window" },
+    { "name": "matches_cnt",      "type": "long", "default": 0, "doc": "applications matching the job's active-state in the window" }
+  ]
+}

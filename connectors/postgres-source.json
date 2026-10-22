@@ -1,0 +1,60 @@
+{
+  "name": "candidate-job-matching-cdc",
+  "notes": [
+    "SOURCE connector. Debezium PostgreSQL via pgoutput (logical decoding, wal_level=logical).",
+    "Keyed by ENTITY ID: Connect key is the table PK struct -> {candidate_id|post_id|application_id}.",
+    "Payload shape op/before/after is preserved; deletes carry the full before image (REPLICA IDENTITY FULL).",
+    "tombstones.on.delete=false is DELIBERATE and matches the tuned match_engine/bronze path:",
+    "  null-value records would violate the explicit JSON schemas Spark expects. Remove this flag only",
+    "  with a matching migration of every JSON consumer (documented trade-off in README/topics docs).",
+    "HONEST LIMITATION: source connectors do NOT support errors.deadletterqueue.* - the DLQ mechanism",
+    "  only exists for SINK connectors. For the source we get bounded retries + error logging + skip:",
+    "  errors.tolerance=all + errors.log.* - the pipeline keeps running and failures are visible in the",
+    "  Connect REST API (GET /connectors/{name}/tasks/{id}/errors)."
+  ],
+  "config": {
+    "name": "__CONNECTOR_NAME__",
+    "config": {
+      "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+
+      "database.hostname": "__DEBEZIUM_DB_HOST__",
+      "database.port": "__POSTGRES_PORT_INTERNAL__",
+      "database.user": "__POSTGRES_USER__",
+      "database.password": "__POSTGRES_PASSWORD__",
+      "database.dbname": "__POSTGRES_DB__",
+
+      "topic.prefix": "__DEBEZIUM_TOPIC_PREFIX__",
+      "plugin.name": "pgoutput",
+      "slot.name": "__DEBEZIUM_SLOT_NAME__",
+      "publication.autocreate.mode": "filtered",
+      "heartbeat.interval.ms": "5000",
+
+      "table.include.list": "public.candidate_info,public.job_posts,public.applications",
+
+      "tombstones.on.delete": "false",
+
+      "max.batch.size": "2048",
+      "max.queue.size": "8192",
+
+      "transforms": "routeCandidate,routeJob,routeApplication",
+      "transforms.routeCandidate.type": "org.apache.kafka.connect.transforms.RegexRouter",
+      "transforms.routeCandidate.regex": "talent\\.public\\.candidate_info",
+      "transforms.routeCandidate.replacement": "candidate_events",
+      "transforms.routeJob.type": "org.apache.kafka.connect.transforms.RegexRouter",
+      "transforms.routeJob.regex": "talent\\.public\\.job_posts",
+      "transforms.routeJob.replacement": "job_events",
+      "transforms.routeApplication.type": "org.apache.kafka.connect.transforms.RegexRouter",
+      "transforms.routeApplication.regex": "talent\\.public\\.applications",
+      "transforms.routeApplication.replacement": "application_events",
+
+      "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+      "key.converter.schemas.enable": "false",
+      "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+      "value.converter.schemas.enable": "false",
+
+      "errors.tolerance": "all",
+      "errors.log.enable": "true",
+      "errors.log.include.message": "true"
+    }
+  }
+}

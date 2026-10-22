@@ -1,0 +1,15 @@
+{
+  "comment": "breaking_change_example.avsc - deliberately INCOMPATIBLE with application_submitted_event.avsc. Demonstrated in tests/03_schema_evolution: trying to register this as the NEXT version of subject application_submitted_events-value is REJECTED (HTTP 409, BACKWARD mode). Two breaking changes made intentionally: (1) new REQUIRED field contract_type with no default - the new reader cannot decode old records that lack the field; (2) candidate_id narrowed string -> int - old string values cannot be read as int.",
+  "namespace": "com.talentradar.events",
+  "type": "record",
+  "name": "ApplicationSubmittedEventBreaking",
+  "fields": [
+    { "name": "event_id",         "type": "string" },
+    { "name": "candidate_id",     "type": "int", "doc": "BREAKING: was string - narrowing erases old records" },
+    { "name": "job_id",           "type": "string" },
+    { "name": "contract_type",    "type": "string", "doc": "BREAKING: required field with no default" },
+    { "name": "status",           "type": "string", "default": "submitted" },
+    { "name": "applied_at",       "type": "string" },
+    { "name": "event_time_ms",    "type": "long" }
+  ]
+}

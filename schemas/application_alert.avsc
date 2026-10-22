@@ -1,0 +1,15 @@
+{
+  "comment": "application_alerts - abnormal-activity detection output (Mathias Bloom, the banking 'fraud alert' analogy adapted to recruitment). Fired when one candidate applies to more than ALERT_APPLY_LIMIT jobs within ALERT_WINDOW minutes (hopping) or repeats the same candidate-job pair.",
+  "namespace": "com.talentradar.alerts",
+  "type": "record",
+  "name": "ApplicationAlert",
+  "doc": "One alert per (candidate_id, window_start, window_end) once the threshold is crossed.",
+  "fields": [
+    { "name": "candidate_id",     "type": "string" },
+    { "name": "window_start",     "type": { "type": "long", "logicalType": "timestamp-millis" } },
+    { "name": "window_end",       "type": { "type": "long", "logicalType": "timestamp-millis" } },
+    { "name": "applications_cnt", "type": "long", "doc": "distinct jobs applied to in the window" },
+    { "name": "repeat_pairs_cnt", "type": "long", "default": 0, "doc": "candidate+job pairs seen more than once in the window" },
+    { "name": "alert_reason",     "type": "string", "doc": "apply_spam | repeat_submission | apply_spam+repeat_submission" }
+  ]
+}

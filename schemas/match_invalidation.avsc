@@ -1,0 +1,14 @@
+{
+  "comment": "match_invalidation_events - DOCUMENTED CONTRACT. This topic is emitted by ksqlDB as JSON (not Avro) because its primary consumer is the Spark match engine, which already parses JSON natively; forcing Avro here would require Spark Schema-Registry integration (ABRIS/from_avro) for zero benefit. This .avsc is the schema of record: it is pre-registered + compatibility-checked in the registry demo (tests/03) so anyone switching the topic to Avro later has a registered, compatible evolution path.",
+  "namespace": "com.talentradar.invalidation",
+  "type": "record",
+  "name": "MatchInvalidation",
+  "doc": "Emitted when a job transitions to closed/filled/deleted: all of its active recommendations must be invalidated.",
+  "fields": [
+    { "name": "job_id",              "type": "string" },
+    { "name": "prior_status",        "type": ["null", "string"], "default": null, "doc": "status before the closing transition" },
+    { "name": "reason",              "type": "string", "doc": "job_closed | job_filled | job_removed" },
+    { "name": "invalidation_time_ms","type": "long", "doc": "event time of the invalidation (Debezium ts_ms)" },
+    { "name": "source_op",           "type": "string", "default": "u", "doc": "Debezium op of the triggering CDC event: u|d|r" }
+  ]
+}

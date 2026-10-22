@@ -1,0 +1,45 @@
+{
+  "name": "jdbc-sink-job-metrics-5m",
+  "notes": [
+    "SINK connector -> analytics PostgreSQL job_metrics_5m (5-min windowed recruiter stats).",
+    "Insert mode UPSERT on PK (job_id, window_start, window_end): re-processing/at-least-once",
+    "  delivery from ksqlDB does not inflate stored counts (idempotent sink).",
+    "pk.mode=record_value: the PRIMARY KEY is taken from value fields - the record key on this",
+    "  topic is the ksql grouping key and would also work, but record_value keeps the mapping",
+    "  explicit and independent of key serialization.",
+    "Value is Avro (Confluent wire format) written by ksqlDB; per-connector AvroConverter",
+    "  override points at the Schema Registry (worker default stays JSON for CDC topics).",
+    "Sink-style DLQ: errors.deadletterqueue.* IS supported on sink connectors (it is NOT on",
+    "  source connectors - see postgres-source.json notes).",
+    "DLQ topic(s) must exist beforehand because broker auto.create=false: scripts/create_topics.ps1."
+  ],
+  "config": {
+    "name": "__CONNECTOR_NAME__",
+    "config": {
+      "connector.class": "io.confluent.connect.jdbc.JdbcSinkConnector",
+      "topics": "job_metrics_5m",
+
+      "connection.url": "jdbc:postgresql://postgres-analytics:5432/__ANALYTICS_DB_NAME__",
+      "connection.user": "__ANALYTICS_DB_USER__",
+      "connection.password": "__ANALYTICS_DB_PASSWORD__",
+
+      "insert.mode": "upsert",
+      "pk.mode": "record_value",
+      "pk.fields": "job_id,window_start,window_end",
+      "delete.enabled": "false",
+      "behavior.on.null.values": "IGNORE",
+
+      "value.converter": "io.confluent.connect.avro.AvroConverter",
+      "value.converter.schema.registry.url": "http://schema-registry:8081",
+      "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+      "key.converter.schemas.enable": "false",
+
+      "errors.tolerance": "all",
+      "errors.retry.timeout": "15000",
+      "errors.retry.delay.max.ms": "60000",
+      "errors.deadletterqueue.topic.name": "dlq.jdbc_sink_metrics",
+      "errors.deadletterqueue.context.headers.enable": "true",
+      "errors.deadletterqueue.context.headers.prefix": "__dlq__"
+    }
+  }
+}

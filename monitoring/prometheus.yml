@@ -1,0 +1,14 @@
+# Prometheus scrape config - optional monitoring profile
+global:
+  scrape_interval: 10s
+  evaluation_interval: 30s
+
+scrape_configs:
+  # Consumer-group lag + topic throughput (kafka_exporter)
+  - job_name: kafka-exporter
+    static_configs:
+      - targets: ["kafka-exporter:9210"]
+  # Self-monitoring
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]

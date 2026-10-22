@@ -1,0 +1,19 @@
+{
+  "comment": "application_submitted_events - producer-side 'web app' path (Avro + Schema Registry). event_id is the idempotency/dedup key; applied_at + event_time_ms carry EVENT time (event_time_ms is what windows and late-event injection use). evolved fields must be added AT THE END with defaults to stay BACKWARD compatible.",
+  "namespace": "com.talentradar.events",
+  "type": "record",
+  "name": "ApplicationSubmittedEvent",
+  "doc": "One job application click from the web app. Keyed by job_id on the wire (ordering per job); deduped by event_id downstream.",
+  "fields": [
+    { "name": "event_id",         "type": "string", "doc": "UUIDv4, unique per submission attempt" },
+    { "name": "candidate_id",     "type": "string" },
+    { "name": "job_id",           "type": "string" },
+    { "name": "application_id",   "type": ["null", "string"], "default": null, "doc": "DB id assigned later by the backend, may be null at click time" },
+    { "name": "status",           "type": "string", "default": "submitted" },
+    { "name": "applied_at",       "type": "string", "doc": "ISO-8601 UTC, event time as a human-readable mirror of event_time_ms" },
+    { "name": "event_time_ms",    "type": "long", "doc": "EVENT TIME in epoch ms - the field windows are built on" },
+    { "name": "produced_at_ms",   "type": "long", "default": -1, "doc": "-1 = stamp on produce side" },
+    { "name": "source",           "type": "string", "default": "web_app", "doc": "web_app | mobile_app | rest_api | synthetic_test" },
+    { "name": "trace_id",         "type": ["null", "string"], "default": null, "doc": "optional platform trace id for debugging" }
+  ]
+}

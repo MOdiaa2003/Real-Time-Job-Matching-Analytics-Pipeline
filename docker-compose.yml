@@ -1,6 +1,80 @@
-# Remove the version: "3.9" line entirely
+# Real-Time Job Matching Analytics Pipeline - infrastructure stack
+#
+# Broker: Apache Kafka 3.8.0 in KRaft mode (single node).
+#   Why switched from Redpanda: ksqlDB + Confluent Schema Registry are
+#   officially supported only against Apache Kafka. Nothing else changes:
+#   same bootstrap port (9092), same topic names -> Spark / medallion /
+#   Debezium configs stay untouched.
+#
+# Kafka-side clients use kafka:29092 (INTERNAL listener).
+# Host-side clients (Spark, producers, tests) use localhost:9092 (EXTERNAL).
 
 services:
+
+  # ── Kafka broker (KRaft, no Zookeeper) ──────────────────────────────
+  kafka:
+    image: apache/kafka:3.8.0
+    container_name: kafka
+    ports:
+      - "${KAFKA_EXTERNAL_PORT:-9092}:9092"
+    environment:
+      # KRaft
+      KAFKA_NODE_ID: 1
+      CLUSTER_ID: ${CLUSTER_ID}
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      # Listeners: internal for containers, external for host scripts
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:${KAFKA_EXTERNAL_PORT:-9092}
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      # Single-node development settings
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      # Retention long enough for event-time window testing
+      KAFKA_LOG_RETENTION_HOURS: 48
+      KAFKA_NUM_PARTITIONS: 3
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions.sh --bootstrap-server localhost:29092 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 20s
+    volumes:
+      - kafka_data:/opt/kafka/data
+    networks:
+      - spark-network
+
+  # ── Confluent Schema Registry (Avro for the NEW topics) ─────────────
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.6.1
+    container_name: schema-registry
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:29092
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+      SCHEMA_REGISTRY_SCHEMA_COMPATIBILITY_LEVEL: backward
+      SCHEMA_REGISTRY_KAFKASTORE_TOPIC_REPLICATION_FACTOR: 1
+      SCHEMA_REGISTRY_KAFKASTORE_SECURITY_PROTOCOL: PLAINTEXT
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8081/subjects || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    networks:
+      - spark-network
+
+  # ── PostgreSQL source (Debezium CDC) ────────────────────────────────
   postgres:
     image: postgres:17
     container_name: my_postgres
@@ -13,85 +87,182 @@ services:
       - "-c"
       - "wal_level=logical"
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./database/init_source.sql:/docker-entrypoint-initdb.d/init_source.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-recruitment}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     networks:
       - spark-network
 
-  redpanda:
-    image: redpandadata/redpanda:${REDPANDA_IMAGE_TAG}
-    container_name: ${REDPANDA_CONTAINER_NAME}
-    command:
-      - redpanda
-      - start
-      - --mode=dev-container
-      - --smp=1
-      - --reserve-memory=0M
-      - --check=false
-      - --node-id=${REDPANDA_NODE_ID}
-      - --kafka-addr=internal://0.0.0.0:29092,external://0.0.0.0:${KAFKA_EXTERNAL_PORT}
-      - --advertise-kafka-addr=internal://${REDPANDA_CONTAINER_NAME}:29092,external://localhost:${KAFKA_EXTERNAL_PORT}
-      - --rpc-addr=0.0.0.0:33145
-      - --advertise-rpc-addr=${REDPANDA_CONTAINER_NAME}:33145
-      - --pandaproxy-addr=internal://0.0.0.0:8082
-      - --advertise-pandaproxy-addr=internal://${REDPANDA_CONTAINER_NAME}:8082
-    ports:
-      - "${KAFKA_EXTERNAL_PORT}:${KAFKA_EXTERNAL_PORT}"
-    networks:
-      - spark-network
-
-  console:
-    image: redpandadata/console:latest
-    container_name: redpanda-console
-    depends_on:
-      - redpanda
+  # ── PostgreSQL analytics (JDBC sink target) ─────────────────────────
+  postgres-analytics:
+    image: postgres:17
+    container_name: my_postgres_analytics
     environment:
-      KAFKA_BROKERS: redpanda:29092
+      POSTGRES_USER: ${ANALYTICS_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${ANALYTICS_POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${ANALYTICS_POSTGRES_DB:-analytics}
     ports:
-      - "8084:8080"
-    networks:
-      - spark-network
-  qdrant:
-    image: qdrant/qdrant:latest
-    container_name: qdrant
-    ports:
-      - "6333:6333"   # REST API
-      - "6334:6334"   # gRPC
+      - "${ANALYTICS_POSTGRES_PORT:-5433}:5432"
     volumes:
-      - qdrant_data:/qdrant/storage
+      - pgdata_analytics:/var/lib/postgresql/data
+      - ./database/init_analytics.sql:/docker-entrypoint-initdb.d/init_analytics.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${ANALYTICS_POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     networks:
       - spark-network
+
+  # ── Kafka Connect (Debezium Postgres source + JDBC sinks) ───────────
+  # Built from the thin Dockerfile: Debezium image + Confluent JDBC sink.
   kafka-connect:
-    # Change '2.7' to '2.7.3.Final' or 'latest'
-    image: debezium/connect:2.7.3.Final
+    build:
+      context: ./docker
+      dockerfile: kafka-connect-extended.Dockerfile
+    image: jobmatching/kafka-connect:2.7.3-jdbc10.7.1
     container_name: kafka-connect
     depends_on:
-      - redpanda
-      - postgres
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
     ports:
-      - "8083:8083"
+      - "${KAFKA_CONNECT_URL_PORT:-8083}:8083"
     environment:
-      BOOTSTRAP_SERVERS: redpanda:29092
+      BOOTSTRAP_SERVERS: kafka:29092
       GROUP_ID: connect-cluster
       CONFIG_STORAGE_TOPIC: connect-configs
       OFFSET_STORAGE_TOPIC: connect-offsets
       STATUS_STORAGE_TOPIC: connect-status
+      CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      STATUS_STORAGE_REPLICATION_FACTOR: 1
+      # Worker-level defaults: JSON without schemas = what Spark expects on CDC topics
       KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: "false"
       CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+      # Avro converter used per-topic by the JDBC sinks referencing the registry
       CONNECT_REST_ADVERTISED_HOST_NAME: kafka-connect
+      # Worker-level DLQ defaults (each sink refines these)
+      CONNECT_ERRORS_RETRY_TIMEOUT: "10000"
+      CONNECT_ERRORS_RETRY_MAX_TIMES: "5"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8083/ || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 60s
     networks:
       - spark-network
-  
 
+  # ── ksqlDB server (job-state table, windows, alerts) ────────────────
+  ksqldb:
+    image: confluentinc/cp-ksqldb-server:7.6.1
+    container_name: ksqldb
+    depends_on:
+      kafka:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+    ports:
+      - "8088:8088"
+    environment:
+      KSQL_BOOTSTRAP_SERVERS: kafka:29092
+      KSQL_LISTENERS: http://0.0.0.0:8088
+      KSQL_KSQL_SERVICE_ID: job_matching_
+      KSQL_KSQL_STREAMS_BOOTSTRAP_SERVERS: kafka:29092
+      KSQL_KSQL_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      KSQL_KSQL_STREAMS_STATE_DIR: /var/lib/kafka-streams
+      KSQL_KSQL_COMMIT_INTERVAL_MS: "2000"
+      # Windowed streams store per-fixed partitions to reduce memory in Docker
+      KSQL_KSQL_STREAMS_STATE_CLEANUP_DELAY_MS: "60000"
+      # Cap heap so Docker Desktop on Windows doesn't OOM (see troubleshooting)
+      KSQL_HEAP_OPTS: "-Xmx768M -Xms512M"
+      # At-least-once: JDBC sink upsert makes the analytics DB idempotent.
+      # (exactly_once_v2 by SinkTuning is documented as NOT used - see README)
+    volumes:
+      - ksqldb_state:/var/lib/kafka-streams
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8088/info || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 60s
+    networks:
+      - spark-network
+
+  # ── Quix Streams python stream processor (dedup + DLQ) ──────────────
+  stream-processor:
+    build:
+      context: ./stream-processor
+      dockerfile: Dockerfile
+    image: jobmatching/stream-processor:1.0.0
+    container_name: stream-processor
+    depends_on:
+      kafka:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      # Topic names + thresholds (defaults baked in image, override here)
+      TOPIC_APP_SUBMITTED: ${TOPIC_APP_SUBMITTED:-application_submitted_events}
+      TOPIC_APP_DEDUP: ${TOPIC_APP_DEDUP:-application_submitted_dedup}
+      DUPLICATION_STATE_RETENTION: ${DUPLICATION_STATE_RETENTION:-30m}
+    volumes:
+      - sp_state:/var/lib/quix-state
+    networks:
+      - spark-network
+
+  # ── Kafka UI (Redpanda Console works against Apache Kafka too) ──────
+  console:
+    image: redpandadata/console:v2.7.2
+    container_name: redpanda-console
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKERS: kafka:29092
+      SCHEMA_REGISTRY_URLS_0_NAME: schema-registry
+      SCHEMA_REGISTRY_URLS_0_URL: http://schema-registry:8081
+    ports:
+      - "${CONSOLE_PORT:-8084}:8080"
+    networks:
+      - spark-network
+
+  # ── Qdrant (future RAG layer; unchanged from the original stack) ────
+  qdrant:
+    image: qdrant/qdrant:v1.11.4
+    container_name: qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - spark-network
 
 networks:
   spark-network:
     driver: bridge
 
 volumes:
-  spark-events:
+  kafka_data:
   pgdata:
+  pgdata_analytics:
+  ksqldb_state:
+  sp_state:
   qdrant_data:

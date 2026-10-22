@@ -1,0 +1,39 @@
+{
+  "name": "jdbc-sink-application-alerts",
+  "notes": [
+    "SINK connector -> analytics PostgreSQL application_alerts (spam/anomaly alerts).",
+    "Same pattern as jdbc-sink-metrics.json: Avro value, upsert on record_value PK",
+    "(candidate_id, window_start, window_end), sink-style DLQ with context headers.",
+    "Note: the analytics PK is (candidate_id, window_start, window_end); alert_id in the",
+    "   init SQL is informational. Conflicting alerts for the same window upsert (over-apply usage)."
+  ],
+  "config": {
+    "name": "__CONNECTOR_NAME__",
+    "config": {
+      "connector.class": "io.confluent.connect.jdbc.JdbcSinkConnector",
+      "topics": "application_alerts",
+
+      "connection.url": "jdbc:postgresql://postgres-analytics:5432/__ANALYTICS_DB_NAME__",
+      "connection.user": "__ANALYTICS_DB_USER__",
+      "connection.password": "__ANALYTICS_DB_PASSWORD__",
+
+      "insert.mode": "upsert",
+      "pk.mode": "record_value",
+      "pk.fields": "candidate_id,window_start,window_end",
+      "delete.enabled": "false",
+      "behavior.on.null.values": "IGNORE",
+
+      "value.converter": "io.confluent.connect.avro.AvroConverter",
+      "value.converter.schema.registry.url": "http://schema-registry:8081",
+      "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+      "key.converter.schemas.enable": "false",
+
+      "errors.tolerance": "all",
+      "errors.retry.timeout": "15000",
+      "errors.retry.delay.max.ms": "60000",
+      "errors.deadletterqueue.topic.name": "dlq.jdbc_sink_alerts",
+      "errors.deadletterqueue.context.headers.enable": "true",
+      "errors.deadletterqueue.context.headers.prefix": "__dlq__"
+    }
+  }
+}

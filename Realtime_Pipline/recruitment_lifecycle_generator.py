@@ -1890,6 +1890,7 @@ import numpy as np
 import datetime
 import psycopg2
 import os
+import argparse
 from dotenv import load_dotenv
 import time
 import json
@@ -1921,6 +1922,21 @@ from data_used import (
 load_dotenv()
 CONFIG = {
     "total_operations": 1000000,
+    # 0 = run exactly total_operations ops; >0 = stop after N seconds
+    "duration_seconds": 0,
+    # ── configurable lifecycle rates (0 = default behavior, unchanged) ──
+    # job_close_rate: extra probability of the periodic close branch in
+    #   update_job() (default close probability is 0.15).
+    "job_close_rate": 0.0,
+    # job_reopen_rate: weight (x100) of the new ("job_post", "reopen")
+    #   operation; 0 disables reopening entirely (no weight added).
+    "job_reopen_rate": 0.0,
+    # profile_update_rate: extra weight (x100) added to ("candidate","update").
+    "profile_update_rate": 0.0,
+    # app_status_transition_rate: >0 enables the FULL application lifecycle
+    #   chain (viewed -> interview -> offer -> accepted/rejected with
+    #   final_outcome). 0 keeps the original view-only behavior.
+    "app_status_transition_rate": 0.0,
     "weights": {
         ("candidate", "insert"):     7,
         ("candidate", "update"):    5,
@@ -1935,6 +1951,53 @@ CONFIG = {
         ("application", "delete"):   1,
     }
 }
+
+# ── Env-var overrides (CLI flags applied in main()) ───────────────────
+_ENV_RATE_KEYS = {
+    "JOB_CLOSE_RATE":            ("job_close_rate",            float),
+    "JOB_REOPEN_RATE":           ("job_reopen_rate",           float),
+    "PROFILE_UPDATE_RATE":       ("profile_update_rate",       float),
+    "APP_STATUS_TRANSITION_RATE":("app_status_transition_rate",float),
+}
+for _k, (_cfg_key, _cast) in _ENV_RATE_KEYS.items():
+    _v = os.getenv(_k)
+    if _v not in (None, ""):
+        CONFIG[_cfg_key] = _cast(_v)
+
+def parse_cli_overrides():
+    """Apply CLI rate knobs + duration/ops on top of CONFIG/env defaults.
+
+    Deliberately separated so the pure-Postgres writer keeps working from
+    a plain `python recruitment_lifecycle_generator.py` run with zero args.
+    """
+    parser = argparse.ArgumentParser(
+        description="Synthetic recruitment workload -> PostgreSQL only (CDC via Debezium)")
+    parser.add_argument("--ops", "--total-operations", dest="ops", type=int, default=None,
+                        help="override total number of operations (default: CONFIG)")
+    parser.add_argument("--duration", type=int, default=None,
+                        help="stop after N seconds instead of a fixed op count")
+    parser.add_argument("--job-close-rate", type=float, dest="job_close_rate", default=None,
+                        help="extra close probability added to the 0.15 default")
+    parser.add_argument("--job-reopen-rate", type=float, dest="job_reopen_rate", default=None,
+                        help="weight (x100) of reopened jobs; 0 = disabled")
+    parser.add_argument("--profile-update-rate", type=float, dest="profile_update_rate", default=None,
+                        help="extra weight (x100) for candidate profile updates")
+    parser.add_argument("--app-status-transition-rate", type=float,
+                        dest="app_status_transition_rate", default=None,
+                        help=">0 enables full application lifecycle transitions")
+    args = parser.parse_args()
+    if args.ops is not None:
+        CONFIG["total_operations"] = args.ops
+    if args.duration is not None:
+        CONFIG["duration_seconds"] = args.duration
+    if args.job_close_rate is not None:
+        CONFIG["job_close_rate"] = args.job_close_rate
+    if args.job_reopen_rate is not None:
+        CONFIG["job_reopen_rate"] = args.job_reopen_rate
+    if args.profile_update_rate is not None:
+        CONFIG["profile_update_rate"] = args.profile_update_rate
+    if args.app_status_transition_rate is not None:
+        CONFIG["app_status_transition_rate"] = args.app_status_transition_rate
 
 
 # ── PostgreSQL Connection ────────────────────────────────────────────────
@@ -2723,8 +2786,12 @@ class LifecycleEngine:
     # MODIFIED: Realistic viewing behavior
     # 72% viewed, 28% never viewed
     # Delays: 1-3d (50%), 3-7d (30%), 7-14d (15%), 14+d (5%)
+    # Stage 1..3 entries are only used when app_status_transition_rate > 0
+    # (full lifecycle chain); default behavior stops at "viewed".
     APP_TRANSITIONS = {
         0: ("viewed", 1),
+        1: ("interview", 2),
+        2: ("offer", 3),
     }
 
     def __init__(self, conn):
@@ -3047,7 +3114,10 @@ class LifecycleEngine:
         desc = ""
         new_version = before["version"]
 
-        if roll < 0.85 and stage < 5:
+        close_prob = 0.15 + float(CONFIG.get("job_close_rate", 0.0))
+        close_prob = max(0.0, min(0.9, close_prob))
+
+        if roll < (1.0 - close_prob) and stage < 5:
             transition_name, next_stage = self.JOB_TRANSITIONS[stage]
 
             if transition_name == "salary_change":
@@ -3172,6 +3242,72 @@ class LifecycleEngine:
             "before": before,
             "after": after,
             "action": desc
+        }
+
+    def reopen_job(self):
+        """Reopen a previously closed job (status -> 'open', stage reset to 0, version+1).
+
+        The reopened job re-enters the 60s warming pool (NOT active_jobs), so
+        it cannot be selected for new applications until Debezium has had time
+        to publish the CDC event - same discipline as _promote_warmed_entities.
+        """
+        if not self.closed_jobs:
+            return None
+        pid = random.choice(list(self.closed_jobs))
+        cur = self.conn.cursor()
+        now = datetime.datetime.now()
+        event_ts = now.isoformat()
+
+        cur.execute("""
+            SELECT post_id, company, category, job_title, application_method, post_date, deadline,
+                certifications, skills_needed, platform, employment_type,
+                city, country, language, work_mode, industry,
+                detailed_experience_level, salary, years_experience, status, lifecycle_stage,
+                created_at, updated_at, version
+            FROM job_posts WHERE post_id=%s
+        """, (pid,))
+        cols = [d[0] for d in cur.description]
+        row = cur.fetchone()
+        if row is None:
+            cur.close()
+            self.closed_jobs.discard(pid)
+            return None
+        before = dict(zip(cols, row))
+
+        cur.execute("""
+            UPDATE job_posts
+            SET status='open', lifecycle_stage=0, updated_at=%s, version=version+1
+            WHERE post_id=%s
+            RETURNING version
+        """, (now, pid))
+        version_row = cur.fetchone()
+        cur.close()
+        if version_row is None:
+            self.closed_jobs.discard(pid)
+            return None
+
+        new_version = version_row[0]
+        self.closed_jobs.discard(pid)
+        self.job_categories[pid] = before["category"]
+        self.job_skills[pid] = before["skills_needed"] or []
+        self.warming_jobs[pid] = now + datetime.timedelta(seconds=60)
+
+        after = dict(before)
+        after["status"] = "open"
+        after["lifecycle_stage"] = 0
+        after["version"] = new_version
+        after["updated_at"] = now
+
+        self.conn.commit()
+        return {
+            "entity": "job_post",
+            "entity_id": pid,
+            "operation": "UPDATE",
+            "event_timestamp": event_ts,
+            "version": new_version,
+            "before": before,
+            "after": after,
+            "action": f"reopened (v{new_version})"
         }
 
     def delete_job(self):
@@ -3372,11 +3508,21 @@ class LifecycleEngine:
         stage = self.active_applications[aid]
         cur = self.conn.cursor()
 
-        if stage != 0:
+        rate = float(CONFIG.get("app_status_transition_rate", 0.0))
+        # Default behavior (rate == 0): only stage-0 applications transition
+        # (to "viewed"). With rate > 0 the FULL chain is enabled:
+        # viewed(1) -> interview(2) -> offer(3) -> accepted|rejected(4).
+        if stage != 0 and rate <= 0:
+            return None
+        if stage not in (0, 1, 2, 3):
+            return None
+
+        # Later stages advance with probability = rate per generator cycle.
+        if stage > 0 and random.random() > rate:
             return None
 
         # Check if this application gets viewed (72% probability)
-        if random.random() > VIEW_PROBABILITY:
+        if stage == 0 and random.random() > VIEW_PROBABILITY:
             # Never viewed — mark as "ignored" but keep in active_applications
             # so it doesn't get processed again
             self.active_applications[aid] = -1  # Special: ignored
@@ -3393,6 +3539,12 @@ class LifecycleEngine:
             }
 
         transition_name, next_stage = self.APP_TRANSITIONS[stage]
+
+        # On the final stage, stop chain-walking and decide the outcome that
+        # stamps final_outcome (accepted 30% / rejected 70%).
+        if stage == 3 and rate > 0:
+            transition_name = "accepted" if random.random() < 0.3 else "rejected"
+            next_stage = 4
 
         cur.execute("""
             SELECT application_id, candidate_id, post_id, status, lifecycle_stage,
@@ -3426,6 +3578,15 @@ class LifecycleEngine:
 
         new_version = version_row[0]
         self.active_applications[aid] = next_stage
+
+        if rate > 0 and next_stage == 4:
+            cur.execute("""
+                UPDATE applications
+                SET final_outcome=%s
+                WHERE application_id=%s
+            """, (transition_name, aid))
+            self.active_applications.pop(aid, None)
+            self.final_applications.add(aid)
 
         cur.execute("""
             SELECT application_id, candidate_id, post_id, status, lifecycle_stage,
@@ -3502,9 +3663,15 @@ def choose_operation(engine):
 
     options.append(("candidate", "insert"))
     w.append(weights[("candidate", "insert")])
+
+    # NEW: configurable profile-update weight (extra relative weight on top
+    # of the table default; profile_update_rate=0 keeps the original weight)
+    w_cand_update = weights[("candidate", "update")] + max(
+        0.0, float(CONFIG.get("profile_update_rate", 0.0)) * 100)
     if engine.active_candidates:
         options.append(("candidate", "update"))
-        w.append(weights[("candidate", "update")])
+        w.append(w_cand_update)
+
     if engine.inactive_candidates:
         options.append(("candidate", "delete"))
         w.append(weights[("candidate", "delete")])
@@ -3514,6 +3681,11 @@ def choose_operation(engine):
     if engine.active_jobs:
         options.append(("job_post", "update"))
         w.append(weights[("job_post", "update")])
+
+    # NEW: configurable reopen weight (0 = disabled, not appended)
+    if engine.closed_jobs and float(CONFIG.get("job_reopen_rate", 0.0)) > 0:
+        options.append(("job_post", "reopen"))
+        w.append(max(1, int(CONFIG["job_reopen_rate"] * 100)))
 
     # NEW: Only create applications if BOTH pools have active (warmed) entities
     has_ready_candidates = len(engine.active_candidates) > 0
@@ -3532,6 +3704,7 @@ def choose_operation(engine):
 # ═══════════════════════════════════════════════════════════════════════
 
 def main():
+    parse_cli_overrides()
     conn = connect_postgres()
     create_base_tables(conn)
     ensure_schema(conn)
@@ -3544,7 +3717,15 @@ def main():
     score_distribution = defaultdict(int)
     start = time.time()
 
-    for i in range(1, CONFIG["total_operations"] + 1):
+    duration = float(CONFIG.get("duration_seconds") or 0)
+    max_ops = CONFIG["total_operations"]
+    i = 0
+    while True:
+        i += 1
+        if duration <= 0 and i > max_ops:
+            break
+        if duration > 0 and (time.time() - start) > duration:
+            break
         # NEW: Promote any entities that have finished their 60s warm-up
         engine._promote_warmed_entities()
         entity, operation = choose_operation(engine)
@@ -3604,6 +3785,9 @@ def main():
 
             elif operation == "update":
                 result = engine.update_job()
+
+            elif operation == "reopen":
+                result = engine.reopen_job()
 
             elif operation == "delete":
                 result = engine.delete_job()
