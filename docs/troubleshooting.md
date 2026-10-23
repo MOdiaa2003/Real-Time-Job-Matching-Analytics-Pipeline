@@ -126,3 +126,28 @@ curl http://localhost:8083/connectors/jdbc-sink-job-metrics-5m/status
 ONLY (containers renamed `*_old_jobposting` from the previous project are
 untouched, and they should never be deleted). It also clears Spark
 checkpoints + Delta lake unless you pass `-KeepSparkState`.
+## 5. Console shows "There were issues deserializing the key/value" on `job_metrics_5m` / `application_alerts`
+
+Symptom: Redpanda Console (:8084) message browser shows deserialization error
+banners for the two ksql-aggregate topics. Verified cause (2026-10-23):
+
+- **Key**: expected and permanent. ksql windowed tables produce the proprietary
+  windowed-key blob: a plain string key plus an 8-byte window-start timestamp
+  (e.g. `JOB_000059` + `000001a1686aeb80` = window start 1792753200000 ms).
+  No schema is (or can be) registered for that key, so ANY schema-resolving
+  browser fails on the key. Documented trade-off #5 in FINAL_REPORT.
+  The JDBC sink is unaffected by design - its key handling uses
+  StringConverter, so upserts keep working (suite 05 replay: PK rows 1/1).
+- **Value**: wire is correct. Both topics carry valid Confluent-wire Avro
+  (schema ids 3 and 4; subjects `job_metrics_5m-value` / `application_alerts-value`
+  both registered and resolvable). Decoding a real record with fastavro against
+  the registry schema produced clean payloads (a metrics row and an
+  apply_spam alert). The banner is console-side schema cache confusion after
+  the CTAS queries were recreated in the same subjects (query ids changed);
+  `docker restart redpanda-console` clears it.
+
+Rule of thumb for demos: for ksql-AGGREGATED topics, read data through the
+analytics Postgres tables (`job_metrics_5m`, `application_alerts`) or decode
+values programmatically; the console message browser is best used for the event
+topics (application_events, application_submitted_events, invalidations),
+which decode cleanly.
