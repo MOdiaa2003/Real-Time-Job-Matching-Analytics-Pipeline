@@ -72,8 +72,13 @@ def main():
         flat.coalesce(1).write.mode("overwrite").option("header", True).csv(target)
         n = df.count()
         print(f"  exported {t}: {n} rows")
+        # flatten the single part-file into exports/<t>.csv for direct BI import
+        parts = [x for x in os.listdir(target) if x.endswith(".csv")]
+        if parts:
+            shutil.copyfile(os.path.join(target, parts[0]), os.path.join(EXPORT, f"{t}.csv"))
+
     spark.stop()
-    print("done -> exports\\*.parquet and exports\\csv\\*.csv")
+    print("done -> exports\\*.parquet and exports\\*.csv")
 
 
 if __name__ == "__main__":
