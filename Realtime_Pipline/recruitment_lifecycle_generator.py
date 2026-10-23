@@ -1895,6 +1895,19 @@ from dotenv import load_dotenv
 import time
 import json
 import uuid
+
+# Windows console encoding guard: status lines use emoji, and a default
+# cp1252 console cannot encode them (UnicodeEncodeError). Without
+# PYTHONIOENCODING=utf-8 this hard-crashes mid-run; with the guard any
+# console encoding works (emoji print as UTF-8 when the console supports
+# it, degrade to '?' otherwise - never a crash).
+import sys as _sys
+try:
+    if _sys.stdout.encoding and _sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
+        _sys.stdout.reconfigure(encoding=_sys.stdout.encoding, errors="replace")
+        _sys.stderr.reconfigure(encoding=_sys.stderr.encoding, errors="replace")
+except (AttributeError, ValueError):
+    pass  # tests/IDE exotic stdout (not reconfigurable) - ignore
 import re
 from collections import defaultdict
 

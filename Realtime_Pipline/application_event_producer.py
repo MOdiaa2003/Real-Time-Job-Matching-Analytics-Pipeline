@@ -30,6 +30,16 @@ import sys
 import time
 import datetime
 
+# Windows console encoding guard: status lines may contain symbols a
+# cp1252 console cannot encode; degrade (never crash) without
+# PYTHONIOENCODING=utf-8, mirroring recruitment_lifecycle_generator.py.
+try:
+    if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
+        sys.stdout.reconfigure(encoding=sys.stdout.encoding, errors="replace")
+        sys.stderr.reconfigure(encoding=sys.stderr.encoding, errors="replace")
+except (AttributeError, ValueError):
+    pass
+
 try:
     from confluent_kafka import Producer
     from confluent_kafka.serialization import SerializationContext, MessageField

@@ -1,0 +1,9 @@
+### Real-Time Candidate–Job Matching & Analytics Pipeline
+*Python, PostgreSQL, Debezium, Redpanda, Spark Structured Streaming, Quix Streams, ksqlDB, Delta Lake, Schema Registry, Kafka Connect*
+
+- Built a real-time recruitment platform using CDC to capture candidate, job, and application changes, with weighted matching across 5 criteria and high-priority recommendations scoring ≥80.
+- Optimized Spark and Delta Lake processing, reducing batch duration by 44% (73s → 41%) and increasing throughput by 1.7× through caching and write optimizations.
+- Implemented fault-tolerant streaming with up to 5 retries and Delta Lake dead-letter handling, capturing 6,389 unresolved records with failure reasons.
+- Integrated Quix Streams, Avro, and Schema Registry for event deduplication; tested 116 events, forwarding 60 unique events and routing 56 duplicates or malformed events to dead-letter topics.
+- Built Bronze–Silver–Gold analytics with validation, quarantine, SCD Type 2 dimensions, and a star schema; used ksqlDB and Kafka Connect for windowed analytics and PostgreSQL sinks.
+- Added 25 observability metrics and reduced files read per batch from 16–19 to 2–3; separately measured ~501 incoming rows/sec and 5.996s p95 producer-to-dedup latency against a 10s SLA.

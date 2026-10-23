@@ -1532,6 +1532,17 @@ Real-Time Candidate ↔ Job Matching Engine (Optimized)
 import os
 import sys
 import pathlib
+
+# Windows console encoding guard: log lines may contain symbols a default
+# cp1252 console cannot encode (UnicodeEncodeError mid-stream); degrade
+# to '?' instead of crashing, mirroring the other entrypoints. Harmless
+# when PYTHONIOENCODING=utf-8 is already set (as scripts/run.ps1 does).
+try:
+    if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
+        sys.stdout.reconfigure(encoding=sys.stdout.encoding, errors="replace")
+        sys.stderr.reconfigure(encoding=sys.stderr.encoding, errors="replace")
+except (AttributeError, ValueError):
+    pass
 from pathlib import Path
 from dotenv import load_dotenv
 
