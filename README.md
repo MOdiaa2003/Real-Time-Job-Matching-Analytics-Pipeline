@@ -74,6 +74,7 @@ Details: `docs\architecture.md`, `docs\topics_and_keys.md`, `docs\troubleshootin
 - [Measured results](#measured-results)
 - [Setup and configuration](#setup-and-configuration)
 - [Running the project](#running-the-project)
+- [Control Center dashboard](#control-center-dashboard)
 - [Known limitations](#known-limitations)
 - [Roadmap](#roadmap)
 
@@ -549,6 +550,22 @@ The following is the intended high-level order. Confirm script arguments and ent
 7. **Inspect outputs:** review Delta tables, quarantine and dead-letter records, Kafka topic activity, and `batch_metrics.jsonl`.
 
 The exact Spark launch command, package-install command, full configuration file, and end-to-end orchestration definition were not provided in the project notes used to prepare this README. Use the repository's current scripts and configuration as the source of truth for those details.
+
+## Control Center dashboard
+
+A read-only Streamlit UI over the pipeline's real data lives in `dashboard/`:
+
+```powershell
+streamlit run dashboard/app.py
+```
+
+Six pages: **Executive Overview** (service badges + KPIs + the three processing paths), **Candidate–Job Matching Explorer** (ranked candidates per job with score breakdown), **Kafka Streaming & Reliability** (topic inventory, DLQ, consumer-group lag, sink freshness), **Batch Medallion & Quality**, **Engine Performance** (from `batch_metrics.jsonl`), and **Testing & Health** (docker/connectors/ksql live probes + acceptance-suite receipts).
+
+Design rules:
+
+- **Nothing is fabricated.** Every widget is labeled `[LIVE]` (probed now) or `[SAVED RUN]` (recorded acceptance-test receipts), with graceful empty-state guidance when a source is down.
+- **Strictly read-only.** Analytics Postgres is queried read-only; Kafka is probed with `kafka-get-offsets.sh` / `kafka-consumer-groups.sh --describe` (never joining groups or writing); no checkpoints, topics, or Delta tables are touched. The only write-capable button is an optional "Re-snapshot Delta exports" that runs the existing `scripts/export_delta_for_bi.py`.
+- **Batch medallion outputs honesty:** the Gold/Bronze/Silver Delta warehouse outputs were produced on the development machine's `LAKE_ROOT` and are not on every machine; the Batch page shows their status and how to generate them locally (`$env:LAKE_ROOT=...` + `spark_pipeline` batch job) rather than inventing rows.
 
 ## Known limitations
 
