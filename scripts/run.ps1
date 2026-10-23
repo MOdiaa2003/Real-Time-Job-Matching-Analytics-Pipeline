@@ -48,13 +48,20 @@ if ($WithGenerator) {
         -RedirectStandardError "$repo\logs\generator.err.log"
     Write-Host "generator: STARTED (logs\generator.log, interpreter: $gen)"
 }
-if ($WithProducer) {
-    $gen = ".venv-streams\Scripts\python.exe"
-    Start-Process -FilePath $gen -ArgumentList "$repo\Realtime_Pipline\application_event_producer.py --rate 10 --duration 999999" `
-        -WorkingDirectory $repo -WindowStyle Hidden `
-        -RedirectStandardOutput "$repo\logs\producer.log" `
-        -RedirectStandardError "$repo\logs\producer.err.log"
-    Write-Host "producer: STARTED (logs\producer.log)"
+if ($WithProducer -or $WithGenerator) {
+    $prod = Get-CimInstance Win32_Process -Filter "Name='python.exe'" |
+        Where-Object { $_.CommandLine -match "application_event_producer" }
+    if ($prod) {
+        Write-Host "producer: SKIP (already running, pids $($prod.ProcessId -join ','))"
+    } else {
+        $pyP = ".venv-streams\Scripts\python.exe"
+        if (-not (Test-Path $pyP)) { $pyP = "python" }
+        Start-Process -FilePath $pyP -ArgumentList "$repo\Realtime_Pipline\application_event_producer.py --rate 10 --duration 999999" `
+            -WorkingDirectory $repo -WindowStyle Hidden `
+            -RedirectStandardOutput "$repo\logs\producer.log" `
+            -RedirectStandardError "$repo\logs\producer.err.log"
+        Write-Host "producer: STARTED (logs\producer.log, interpreter: $pyP)"
+    }
 }
 
 Write-Host ""
