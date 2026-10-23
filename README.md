@@ -1,6 +1,6 @@
 # Real-Time Candidate–Job Matching Pipeline
 
-An end-to-end recruitment data platform that simulates candidate, job, and application activity in PostgreSQL, captures database changes through Debezium and Kafka-compatible Redpanda, and processes those changes through **multiple independent data paths**:
+An end-to-end recruitment data platform that simulates candidate, job, and application activity in PostgreSQL, captures database changes through Debezium on the **Apache Kafka 3.8.0 (KRaft)** broker, and processes those changes through **multiple independent data paths**:
 
 - **Streaming matching path:** scores applications in near real time with Spark Structured Streaming and writes match results to Delta Lake. High-priority matches are also published to Kafka.
 - **Batch medallion path:** lands raw CDC events in Bronze, cleans and validates them in Silver, and builds a dimensional analytics model in Gold.
@@ -79,7 +79,7 @@ Details: `docs\architecture.md`, `docs\topics_and_keys.md`, `docs\troubleshootin
 
 ## Architecture
 
-The Python generator writes to PostgreSQL only. Debezium captures committed database changes from PostgreSQL's write-ahead log (WAL) and publishes them to Kafka-compatible Redpanda topics. The streaming and batch paths then consume those topics independently.
+The Python generator writes to PostgreSQL only. Debezium captures committed database changes from PostgreSQL's write-ahead log (WAL) and publishes them to Apache Kafka topics. The streaming and batch paths then consume those topics independently.
 
 <p align="center">
   <img src="./Gemini_Generated_Image_vljnqxvljnqxvljn.jpeg" alt="Real-Time Candidate Job Matching Pipeline Architecture" width="100%">
@@ -107,7 +107,7 @@ The Debezium connector uses the PostgreSQL `pgoutput` plugin and routes source-t
 - **Language and processing:** Python, PySpark, Apache Spark Structured Streaming, Spark SQL
 - **Kafka-native streaming:** Quix Streams 3.14 (python), ksqlDB 7.6.1 (SQL without Java)
 - **Database and CDC:** PostgreSQL 17, Debezium 2.7.3 (+ Debezium JdbcSinkConnector 2.7.3, Kafka Connect 3.7)
-- **Messaging:** Redpanda (Kafka API), Redpanda Console, Schema Registry (Confluent 7.6.1)
+- **Messaging:** Apache Kafka 3.8.0 (KRaft), Redpanda Console (UI), Schema Registry (Confluent 7.6.1)
 - **Storage and analytics:** Delta Lake, analytics PostgreSQL (JDBC sink target)
 - **Vector search / AI extension:** Qdrant (RAG layer in progress)
 - **Local environment:** Docker Compose, Windows
@@ -116,7 +116,7 @@ The Debezium connector uses the PostgreSQL `pgoutput` plugin and routes source-t
 
 | Component | Responsibility |
 |---|---|
-| `docker-compose.yml` | Runs PostgreSQL, Redpanda, Redpanda Console, Kafka Connect/Debezium, and Qdrant on `spark-network`. |
+| `docker-compose.yml` | Runs PostgreSQL, Apache Kafka (KRaft), Redpanda Console, Kafka Connect/Debezium, and Qdrant on `spark-network`. |
 | `recruitment_lifecycle_generator.py` | Generates synthetic candidate, job, and application records with lifecycle-aware values and weighted operations. |
 | `debezuim_connector.py` | Registers, checks, or deletes the Debezium connector through the Kafka Connect REST API. |
 | `match_engine.py` | Runs the Spark Structured Streaming match engine and contains `process_application_batch()`, its `foreachBatch` handler. |
@@ -494,7 +494,7 @@ From the repository root, start the services defined in `docker-compose.yml`:
 docker compose up -d
 ```
 
-The documented local service ports include PostgreSQL `5432`, Redpanda Console `8084`, Kafka Connect REST API `8083`, Qdrant REST `6333`, and Qdrant gRPC `6334`. Confirm the actual mappings in your current Compose file before starting if those ports are already in use.
+The documented local service ports include PostgreSQL `5432`, Redpanda Console `8084`, Kafka Connect REST API `8083`, Qdrant REST `6333`, and Qdrant gRPC `6334`. The analytics Postgres is published on host port `15433` (moved off 5433 to avoid colliding with a locally installed PostgreSQL service). Confirm the actual mappings in your current Compose file before starting if those ports are already in use.
 
 ### Configure PostgreSQL and Debezium
 
@@ -540,7 +540,7 @@ The batch layer also uses shared configuration for topic names, Bronze/Silver/Qu
 
 The following is the intended high-level order. Confirm script arguments and entry points in your checked-out version before running long workloads.
 
-1. **Start infrastructure:** run `docker compose up -d` and verify that PostgreSQL, Redpanda, Kafka Connect, and the other configured services are healthy.
+1. **Start infrastructure:** run `docker compose up -d` and verify that PostgreSQL, Apache Kafka, Kafka Connect, and the other configured services are healthy.
 2. **Prepare PostgreSQL:** verify logical replication, privileges, source tables, and `REPLICA IDENTITY FULL` settings.
 3. **Register the CDC connector:** use the connector helper's `register` operation and confirm status through its `status` operation.
 4. **Start the streaming engine:** configure the Kafka bootstrap address, checkpoint path, Delta path, and metrics log path, then launch the `match_engine.py` entry point used by your repository version.
@@ -574,3 +574,90 @@ The exact Spark launch command, package-install command, full configuration file
 ## Notes on interpretation
 
 Performance figures in this README come from the supplied project notes and specific observed runs. They are included to document actual behavior, not to claim a controlled benchmark or a guaranteed production throughput. Paths, dependency versions, commands, and exposed ports can vary across local setups.
+
+---
+
+## Live Pipeline Evidence
+
+Every screenshot below is from the live pipeline on my machine (synthetic local data only).
+Drop your captures into `docs/images/` with the exact names used here and the images appear automatically
+(starter captures need Kafka + Connect + the Python engine running: `powershell -ExecutionPriority Bypass -File scripts\run.ps1 -WithGenerator`).
+
+### 1. Kafka topics - CDC ingestion and event flow
+![Kafka topic overview](docs/images/kafka-topic-overview.png)
+> **Change Data Capture + event flow:** Debezium captures committed changes to `candidate`, `job`, and `application`
+> tables from PostgreSQL's WAL and publishes `candidate_events`, `job_events`, `application_events` for independent
+> downstream consumers. Note the aggregates (`job_metrics_5m`, `application_alerts`) fill alongside the raw streams.
+> *Where: Redpanda Console http://localhost:8084 -> Topics. For the message view use `application_submitted_events`
+> (Avro decodes in-browser through Schema Registry).*
+
+### 2. Kafka Connect + Debezium connector fleet
+![Connectors running](docs/images/connectors-running.png)
+> **CDC source and analytics sinks:** one Debezium PostgreSQL source connector plus two JDBC sink connectors
+> (`jdbc-sink-job-metrics-5m`, `jdbc-sink-application-alerts`) - all `RUNNING` with idempotent upserts into the
+> analytics database. *Where: http://localhost:8083/connectors.*
+
+### 3. Deduplication + DLQ accounting (the fault-tolerance proof)
+![Event dedup and DLQ results](docs/images/event-dedup-dlq.png)
+> **Zero-loss accounting:** in the seeded-fault acceptance test, **122 events in -> 67 unique forwarded + 50
+> DUPLICATE-DLQ + 5 undecodable-DLQ = zero unaccounted**, reconciled per event id; the larger live audit measured
+> **190 in -> 147 unique + 43 DLQ (100% account)**. Malformed wire variants are classified into
+> `AVRO_DECODE_FAILED` / `BAD_WIRE_HEADER` / `TRUNCATED_HEADER` / `SCHEMA_LOOKUP_FAILED` before quarantining.
+> *Where: correct screenshots = the output of tests\02_dedup_dlq_integrity (run tests\run_all.ps1, use
+> tests\02_dedup_dlq_integrity\results\last_run.txt) plus a Redpanda Console view of `dlq.application_submitted_events`.*
+
+### 4. Spark Structured Streaming - the matching engine
+![Spark matching batch](docs/images/spark-matching-batch.png)
+> **Streaming match engine:** every micro-batch resolves applications against live job state, scores weighted
+> matches across 5 criteria, and routes high-priority recommendations. A measured batch showed
+> `incoming=6049, resolved=5996, scored=5996, dead_letter=0` in ~80 s (batch time cutter 73 s -> 41 s via caching).
+> *Where: the Spark UI http://localhost:4040 (Structured Streaming tab) while the engine runs, plus
+> logs\match_engine.log for the STEP trace and streaming_lake\_metrics\batch_metrics.jsonl for per-batch metrics.*
+
+### 5. ksqlDB - windowed analytics and invalidations
+![ksqlDB live analytics](docs/images/ksqldb-live-analytics.png)
+> **Streaming SQL analytics:** tumbling-5-min + hopping-10-min job metrics, per-candidate rate alerts,
+> and two-legged job-state invalidation the moment a job closes/fills - all as ksqlDB persistent queries
+> (`SHOW QUERIES`, and rows of `job_metrics_5m` / `application_alerts` with exact window widths
+> {300000, 600000} ms in the serving DB).
+> *Where: run `docker exec -it ksqldb ksql http://localhost:8088` (or wk http://localhost:8088/status) to
+> capture `SHOW TABLES;` + `SHOW QUERIES;`.* NOTE the console brower shows "issues deserializing the key"
+> for windowed topics - that is the documented ksql windowed-key blob (see docs troubleshooting) - value
+> schemas resolve and decode fine.
+
+### 6. Analytics PostgreSQL - serving layer
+![Postgres analytics sink](docs/images/postgres-analytics-sink.png)
+> **Persisted real-time aggregates:** JDBC sinks upsert metrics/alerts into the analytics database - idempotent
+> replay test verified PK rows 1/1, totals identical after reprocessing. Measured `job_metrics_5m` **2167 rows**
+> and `application_alerts` **303 rows** during a live generator session.
+> *Where: DataGrip/pgAdmin/DBeaver -> host localhost, port 15433, db `analytics`, user `postgres`
+> (password in .env, never inline in screenshots), or `docker exec -it my_postgres_analytics psql -U postgres -d analytics`.*
+
+### 7. Architecture diagram
+![Architecture](docs/images/architecture.png)
+> PostgreSQL (synthetic lifecycle generator) -> Debezium CDC -> Kafka -> { Quix Streams dedup -> ksqlDB windows/alerts
+> -> JDBC sinks -> Postgres serving } and { Spark Structured Streaming -> Delta Lake match_results/invalidations }.
+> *Create with draw.io / excalidraw and export PNG 1400px or wider.*
+
+### 8. Infrastructure health
+![Docker compose services](docs/images/docker-services-health.png)
+> **One-command stack:** 10 services healthy on a single `docker compose up -d`:
+> kafka, kafka-connect, ksqldb, schema-registry, both Postgres instances, stream-processor, console, qdrant.
+> *Where: `docker compose ps` from the repo root.*
+
+---
+
+### Screenshot capture cheat-sheet (private-port map)
+
+| What | Where / command | Suggested filename |
+|---|---|---|
+| Kafka topic list + messages | http://localhost:8084 -> Topics -> application_submitted_events | kafka-topic-overview.png |
+| Kafka Connect connectors | http://localhost:8083/connectors | connectors-running.png |
+| Dedup + DLQ accounting | tests\02_dedup_dlq_integrity (run_all) | event-dedup-dlq.png |
+| Spark batches | http://localhost:4040 (Structured Streaming) or batch_metrics.jsonl | spark-matching-batch.png |
+| ksqlDB queries | http://localhost:8088/status, SHOW QUERIES | ksqldb-live-analytics.png |
+| Delta match results | exports\*.csv preview or Delta table row counts in match_engine.log | delta-match-results.png |
+| Analytics DB rows | psql on :15433 analytics | postgres-analytics-sink.png |
+| Compliance Spark medallion (historic) | streaming_lake bronze/gold dirs | medallion-results.png |
+
+*All screenshots 1200-1600 px wide, crop desktop clutter, mask any password/context values.*
