@@ -38,12 +38,15 @@ if (-not $NoEngine) {
 
 # 3. optional producers
 if ($WithGenerator) {
-    $gen = ".venv-streams\Scripts\python.exe"
+    # generator needs psycopg2/numpy/dotenv -> .venv-gen (NOT .venv-streams,
+    # which only carries confluent-kafka for the producer)
+    $gen = ".venv-gen\Scripts\python.exe"
+    if (-not (Test-Path $gen)) { $gen = "python" }
     Start-Process -FilePath $gen -ArgumentList "$repo\Realtime_Pipline\recruitment_lifecycle_generator.py" `
         -WorkingDirectory $repo -WindowStyle Hidden `
         -RedirectStandardOutput "$repo\logs\generator.log" `
         -RedirectStandardError "$repo\logs\generator.err.log"
-    Write-Host "generator: STARTED (logs\generator.log)"
+    Write-Host "generator: STARTED (logs\generator.log, interpreter: $gen)"
 }
 if ($WithProducer) {
     $gen = ".venv-streams\Scripts\python.exe"
