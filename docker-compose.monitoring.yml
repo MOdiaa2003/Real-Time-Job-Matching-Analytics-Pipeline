@@ -1,5 +1,7 @@
-# Optional observability profile:
-#   docker compose -f docker-compose.yml -f docker-compose.monitoring.yml --profile monitoring up -d
+# Optional observability stack - fully standalone:
+#   docker compose -f docker-compose.monitoring.yml up -d
+# (attaches to the main project's existing network via an external network
+# reference; no need to pass docker-compose.yml as well.)
 #
 # Honest scoping: kafka_exporter (danielqsj) exposes CONSUMER-GROUP LAG
 # per group/topic/partition and per-topic message rates (throughput).
@@ -8,11 +10,10 @@
 services:
 
   kafka-exporter:
-    image: danielqsj/kafka_exporter:v1.8.0
+    image: danielqsj/kafka-exporter:v1.8.0
     container_name: kafka-exporter
-    depends_on:
-      kafka:
-        condition: service_healthy
+    # NB: no depends_on - kafka runs in a different compose project; the
+    # exporter retries its connection until kafka's DNS name resolves.
     command:
       - "--kafka.server=kafka:29092"
       - "--web.listen-address=:9210"
