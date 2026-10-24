@@ -1,0 +1,31 @@
+[2026-10-23 11:39:07] 01_pipeline_health : PASS
+  - OK container kafka running/healthy
+  - OK container schema-registry running/healthy
+  - OK container kafka-connect running/healthy
+  - OK container ksqldb running/healthy
+  - OK container my_postgres running/healthy
+  - OK container my_postgres_analytics running/healthy
+  - OK container stream-processor running/healthy
+  - OK topic candidate_events exists
+  - OK topic job_events exists
+  - OK topic application_events exists
+  - OK topic application_submitted_events exists
+  - OK topic application_submitted_dedup exists
+  - OK topic application_state_events exists
+  - OK topic job_state_events exists
+  - OK topic match_invalidation_events exists
+  - OK topic job_metrics_5m exists
+  - OK topic application_alerts exists
+  - OK topic dlq.application_submitted_events exists
+  - OK topic dlq.cdc_projection exists
+  - OK topic dlq.jdbc_sink_metrics exists
+  - OK topic dlq.jdbc_sink_alerts exists
+  - OK connector candidate-job-matching-cdc RUNNING
+  - OK connector jdbc-sink-job-metrics-5m RUNNING
+  - OK connector jdbc-sink-application-alerts RUNNING
+  - OK ksql persistent queries RUNNING
+  - OK analytics job_metrics_5m.window_start is BIGINT
+  - OK analytics table job_metrics_5m exists
+  - OK analytics table application_alerts exists
+  - OK analytics table job_current_state exists
+  - OK schema registry reachable, key subjects registered
