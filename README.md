@@ -62,6 +62,9 @@ The six dashboard screenshots are embedded directly below so they appear inline 
     </td>
     <td align="center" width="50%">
       <strong>Want interactive views?</strong><br />
+      <td align="center" width="50%">
+      <img src="./docs/images/engine-performance-2.png" alt="Streamlit Testing and Health view with Docker service probes, connector status, and saved acceptance test receipts" width="100%" />
+      <br />
       <sub>These README screenshots are static previews. Link to a deployed Streamlit app to let readers interact with filters and tables.</sub>
     </td>
   </tr>
