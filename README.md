@@ -7,7 +7,7 @@ An end-to-end recruitment data platform using PostgreSQL CDC, Debezium, Kafka, S
 ## Architecture at a glance
 
 <p align="center">
-  <img src="./Gemini_Generated_Image_vljnqxvljnqxvljn.jpeg" alt="Real-Time Candidate–Job Matching and Analytics Pipeline architecture" width="100%" />
+  <img src="./Real-Time Candidate Matching Pipeline.png" width="100%" />
 </p>
 
 ## Streamlit Dashboard Preview
