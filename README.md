@@ -24,48 +24,50 @@ The six dashboard screenshots are embedded directly below so they appear inline 
   <sub>Pipeline KPIs, processing paths, and component health at a glance.</sub>
 </p>
 
-<table>
-  <tr>
-    <td align="center" width="50%">
-      <img src="./docs/images/matching-explorer.png" alt="Streamlit Candidate–Job Matching Explorer with ranked candidates and match scores" width="100%" />
-      <br />
-      <strong>Candidate–Job Matching</strong><br />
-      <sub>Ranked candidates, matching scores, and score breakdowns.</sub>
-    </td>
-    <td align="center" width="50%">
-      <img src="./docs/images/kafka-streaming-reliability.png" alt="Streamlit Kafka Streaming and Reliability view with topic activity, consumer lag, and dead-letter indicators" width="100%" />
-      <br />
-      <strong>Kafka Streaming &amp; Reliability</strong><br />
-      <sub>Topic activity, consumer lag, dead-letter signals, and sink freshness.</sub>
-    </td>
-  </tr>
-  <tr>
-    <td align="center" width="50%">
-      <img src="./docs/images/batch-medallion-quality.png" alt="Streamlit Batch Medallion and Quality view for Bronze Silver and Gold outputs" width="100%" />
-      <br />
-      <strong>Batch Medallion &amp; Quality</strong><br />
-      <sub>Bronze/Silver/Gold output status and data-quality indicators.</sub>
-    </td>
-    <td align="center" width="50%">
-      <img src="./docs/images/engine-performance-2.png" alt="Streamlit Engine Performance view with batch duration, throughput, row counts, and stage timing charts" width="100%" />
-      <br />
-      <strong>Engine Performance</strong><br />
-      <sub>Batch duration, input throughput, processing outcomes, and stage costs.</sub>
-    </td>
-  </tr>
-  <tr>
-    <td align="center" width="50%">
-      <img src="./docs/images/testing-health.png" alt="Streamlit Testing and Health view with Docker service probes, connector status, and saved acceptance test receipts" width="100%" />
-      <br />
-      <strong>Testing &amp; Health</strong><br />
-      <sub>Service probes, connector/ksqlDB status, and saved acceptance-test receipts.</sub>
-    </td>
-    <td align="center" width="50%">
-      <strong>Want interactive views?</strong><br />
-      <sub>These README screenshots are static previews. Link to a deployed Streamlit app to let readers interact with filters and tables.</sub>
-    </td>
-  </tr>
-</table>
+<p align="center">
+  <img src="./docs/images/matching-explorer.png" alt="Streamlit Candidate–Job Matching Explorer with ranked candidates and match scores" width="100%" />
+</p>
+<p align="center">
+  <strong>Candidate–Job Matching</strong><br />
+  <sub>Ranked candidates, matching scores, and score breakdowns.</sub>
+</p>
+
+<p align="center">
+  <img src="./docs/images/kafka-streaming-reliability.png" alt="Streamlit Kafka Streaming and Reliability view with topic activity, consumer lag, and dead-letter indicators" width="100%" />
+</p>
+<p align="center">
+  <strong>Kafka Streaming &amp; Reliability</strong><br />
+  <sub>Topic activity, consumer lag, dead-letter signals, and sink freshness.</sub>
+</p>
+
+<p align="center">
+  <img src="./docs/images/batch-medallion-quality.png" alt="Streamlit Batch Medallion and Quality view for Bronze Silver and Gold outputs" width="100%" />
+</p>
+<p align="center">
+  <strong>Batch Medallion &amp; Quality</strong><br />
+  <sub>Bronze/Silver/Gold output status and data-quality indicators.</sub>
+</p>
+
+<p align="center">
+  <img src="./docs/images/engine-performance-2.png" alt="Streamlit Engine Performance view with batch duration, throughput, row counts, and stage timing charts" width="100%" />
+</p>
+<p align="center">
+  <strong>Engine Performance</strong><br />
+  <sub>Batch duration, input throughput, processing outcomes, and stage costs.</sub>
+</p>
+
+<p align="center">
+  <img src="./docs/images/testing-health.png" alt="Streamlit Testing and Health view with Docker service probes, connector status, and saved acceptance test receipts" width="100%" />
+</p>
+<p align="center">
+  <strong>Testing &amp; Health</strong><br />
+  <sub>Service probes, connector/ksqlDB status, and saved acceptance-test receipts.</sub>
+</p>
+
+<p align="center">
+  <strong>Want interactive views?</strong><br />
+  <sub>These README screenshots are static previews. Link to a deployed Streamlit app to let readers interact with filters and tables.</sub>
+</p>
 ## Contents
 
 - [Streamlit Dashboard Preview](#streamlit-dashboard-preview)
