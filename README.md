@@ -17,7 +17,7 @@ The six dashboard screenshots are embedded directly below so they appear inline 
 > **Image files:** Commit each screenshot to `docs/images/` using the exact filename shown in its image path. GitHub cannot display an image if the file is missing or the filename/capitalization does not match.
 
 <p align="center">
-  <img src="./docs/images/streamlit-executive-overview.png" alt="Streamlit Executive Overview showing pipeline KPIs and service status" width="100%" />
+  <img src="./docs/images/executive-overview.png" alt="Streamlit Executive Overview showing pipeline KPIs and service status" width="100%" />
 </p>
 <p align="center">
   <strong>Executive Overview</strong><br />
@@ -27,13 +27,13 @@ The six dashboard screenshots are embedded directly below so they appear inline 
 <table>
   <tr>
     <td align="center" width="50%">
-      <img src="./docs/images/streamlit-matching-explorer.png" alt="Streamlit Candidate–Job Matching Explorer with ranked candidates and match scores" width="100%" />
+      <img src="./docs/images/matching-explorer.png" alt="Streamlit Candidate–Job Matching Explorer with ranked candidates and match scores" width="100%" />
       <br />
       <strong>Candidate–Job Matching</strong><br />
       <sub>Ranked candidates, matching scores, and score breakdowns.</sub>
     </td>
     <td align="center" width="50%">
-      <img src="./docs/images/streamlit-kafka-streaming-reliability.png" alt="Streamlit Kafka Streaming and Reliability view with topic activity, consumer lag, and dead-letter indicators" width="100%" />
+      <img src="./docs/images/kafka-streaming-reliability.png" alt="Streamlit Kafka Streaming and Reliability view with topic activity, consumer lag, and dead-letter indicators" width="100%" />
       <br />
       <strong>Kafka Streaming &amp; Reliability</strong><br />
       <sub>Topic activity, consumer lag, dead-letter signals, and sink freshness.</sub>
@@ -41,7 +41,7 @@ The six dashboard screenshots are embedded directly below so they appear inline 
   </tr>
   <tr>
     <td align="center" width="50%">
-      <img src="./docs/images/streamlit-batch-medallion-quality.png" alt="Streamlit Batch Medallion and Quality view for Bronze Silver and Gold outputs" width="100%" />
+      <img src="./docs/images/batch-medallion-quality.png" alt="Streamlit Batch Medallion and Quality view for Bronze Silver and Gold outputs" width="100%" />
       <br />
       <strong>Batch Medallion &amp; Quality</strong><br />
       <sub>Bronze/Silver/Gold output status and data-quality indicators.</sub>
@@ -55,7 +55,7 @@ The six dashboard screenshots are embedded directly below so they appear inline 
   </tr>
   <tr>
     <td align="center" width="50%">
-      <img src="./docs/images/streamlit-testing-health.png" alt="Streamlit Testing and Health view with Docker service probes, connector status, and saved acceptance test receipts" width="100%" />
+      <img src="./docs/images/testing-health.png" alt="Streamlit Testing and Health view with Docker service probes, connector status, and saved acceptance test receipts" width="100%" />
       <br />
       <strong>Testing &amp; Health</strong><br />
       <sub>Service probes, connector/ksqlDB status, and saved acceptance-test receipts.</sub>
