@@ -4,6 +4,12 @@ An end-to-end recruitment data platform using PostgreSQL CDC, Debezium, Kafka, S
 
 > **Status:** Core CDC, streaming matching, Kafka integration, medallion processing, and observability components are implemented. The Qdrant-based recruitment intelligence / RAG assistant is in progress.
 
+## Architecture at a glance
+
+<p align="center">
+  <img src="./Gemini_Generated_Image_vljnqxvljnqxvljn.jpeg" alt="Real-Time Candidate–Job Matching and Analytics Pipeline architecture" width="100%" />
+</p>
+
 ## Streamlit Dashboard Preview
 
 The Streamlit app contains six views for exploring matching results and monitoring the pipeline. The gallery below is wired to screenshots stored in `docs/images/streamlit/`.
@@ -83,7 +89,6 @@ The Streamlit app contains six views for exploring matching results and monitori
 
 ## Goals and architecture
 
-![Candidate–job matching pipeline architecture](./Gemini_Generated_Image_vljnqxvljnqxvljn.jpeg)
 
 The system simulates recruitment activity and processes the resulting database changes through independent paths.
 
