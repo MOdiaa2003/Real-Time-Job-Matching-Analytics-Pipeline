@@ -12,15 +12,14 @@ An end-to-end recruitment data platform using PostgreSQL CDC, Debezium, Kafka, S
 
 ## Streamlit Dashboard Preview
 
-The Streamlit app contains six views for exploring matching results and monitoring the pipeline. The gallery below is wired to screenshots stored in `docs/images/streamlit/`.
+The six dashboard screenshots are embedded directly below so they appear inline in the README instead of requiring a click to open each image. All screenshots use the same `docs/images/` directory as the Engine Performance image.
 
-> **Add real screenshots:** The dashboard files contain the Streamlit code but no screenshots. Capture the running app and save each image using the exact filename below; GitHub will render the gallery after those image files are committed.
+> **Image files:** Commit each screenshot to `docs/images/` using the exact filename shown in its image path. GitHub cannot display an image if the file is missing or the filename/capitalization does not match.
 
 <p align="center">
-  <a href="./docs/images/streamlit/01-executive-overview.png">
-    <img src="./docs/images/streamlit/01-executive-overview.png" alt="Streamlit Executive Overview showing pipeline KPIs and service status" width="100%" />
-  </a>
-  <br />
+  <img src="./docs/images/streamlit-executive-overview.png" alt="Streamlit Executive Overview showing pipeline KPIs and service status" width="100%" />
+</p>
+<p align="center">
   <strong>Executive Overview</strong><br />
   <sub>Pipeline KPIs, processing paths, and component health at a glance.</sub>
 </p>
@@ -28,47 +27,42 @@ The Streamlit app contains six views for exploring matching results and monitori
 <table>
   <tr>
     <td align="center" width="50%">
-      <a href="./docs/images/streamlit/02-matching-explorer.png">
-        <img src="./docs/images/streamlit/02-matching-explorer.png" alt="Streamlit Candidate–Job Matching Explorer with ranked candidates and match scores" width="100%" />
-      </a><br />
+      <img src="./docs/images/streamlit-matching-explorer.png" alt="Streamlit Candidate–Job Matching Explorer with ranked candidates and match scores" width="100%" />
+      <br />
       <strong>Candidate–Job Matching</strong><br />
       <sub>Ranked candidates, matching scores, and score breakdowns.</sub>
     </td>
     <td align="center" width="50%">
-      <a href="./docs/images/streamlit/03-kafka-streaming-reliability.png">
-        <img src="./docs/images/streamlit/03-kafka-streaming-reliability.png" alt="Streamlit Kafka Streaming and Reliability view with topic activity, consumer lag, and dead-letter indicators" width="100%" />
-      </a><br />
+      <img src="./docs/images/streamlit-kafka-streaming-reliability.png" alt="Streamlit Kafka Streaming and Reliability view with topic activity, consumer lag, and dead-letter indicators" width="100%" />
+      <br />
       <strong>Kafka Streaming &amp; Reliability</strong><br />
       <sub>Topic activity, consumer lag, dead-letter signals, and sink freshness.</sub>
     </td>
   </tr>
   <tr>
     <td align="center" width="50%">
-      <a href="./docs/images/streamlit/04-batch-medallion-quality.png">
-        <img src="./docs/images/streamlit/04-batch-medallion-quality.png" alt="Streamlit Batch Medallion and Quality view for Bronze Silver and Gold outputs" width="100%" />
-      </a><br />
+      <img src="./docs/images/streamlit-batch-medallion-quality.png" alt="Streamlit Batch Medallion and Quality view for Bronze Silver and Gold outputs" width="100%" />
+      <br />
       <strong>Batch Medallion &amp; Quality</strong><br />
       <sub>Bronze/Silver/Gold output status and data-quality indicators.</sub>
     </td>
     <td align="center" width="50%">
-      <a href="docs/images/engine-performance-2.png">
-        <img src="./docs/images/streamlit/05-engine-performance.png" alt="Streamlit Engine Performance view with batch duration, throughput, row counts, and stage timing charts" width="100%" />
-      </a><br />
+      <img src="./docs/images/engine-performance-2.png" alt="Streamlit Engine Performance view with batch duration, throughput, row counts, and stage timing charts" width="100%" />
+      <br />
       <strong>Engine Performance</strong><br />
       <sub>Batch duration, input throughput, processing outcomes, and stage costs.</sub>
     </td>
   </tr>
   <tr>
     <td align="center" width="50%">
-      <a href="./docs/images/streamlit/06-testing-health.png">
-        <img src="./docs/images/streamlit/06-testing-health.png" alt="Streamlit Testing and Health view with Docker service probes, connector status, and saved acceptance test receipts" width="100%" />
-      </a><br />
+      <img src="./docs/images/streamlit-testing-health.png" alt="Streamlit Testing and Health view with Docker service probes, connector status, and saved acceptance test receipts" width="100%" />
+      <br />
       <strong>Testing &amp; Health</strong><br />
       <sub>Service probes, connector/ksqlDB status, and saved acceptance-test receipts.</sub>
     </td>
     <td align="center" width="50%">
-      <strong>Suggested extra chart capture</strong><br />
-      <sub>For a more visual portfolio, add a close-up of the performance charts or the matching-score breakdown after the six main screenshots are in place.</sub>
+      <strong>Want interactive views?</strong><br />
+      <sub>These README screenshots are static previews. Link to a deployed Streamlit app to let readers interact with filters and tables.</sub>
     </td>
   </tr>
 </table>
@@ -315,7 +309,7 @@ Ordinary dashboard rendering queries data and probes services; it does not write
 
 For the 116-event example, show 60 unique, 44 duplicates, and 12 malformed events with zero unaccounted. Do not combine figures from different runs.
 
-Save the six screenshots using the exact `docs/images/streamlit/` paths in the gallery at the top of this README. Capture the actual running Streamlit pages rather than creating illustrative screenshots, crop out desktop clutter, and remove credentials or private connection details. GitHub renders the images as static previews; link to a deployed Streamlit app if readers should interact with the filters and tables. A short GIF can demonstrate a workflow, but embedded charts remain static.
+Save the five Streamlit screenshots alongside `engine-performance-2.png` in `docs/images/`, using the exact filenames referenced by the image tags at the top of this README. Capture the actual running Streamlit pages rather than creating illustrative screenshots, crop out desktop clutter, and remove credentials or private connection details. The README embeds the images directly (without clickable image links), so GitHub displays them inline when each file exists at the referenced path. Link to a deployed Streamlit app if readers should interact with the filters and tables. A short GIF can demonstrate a workflow, but embedded charts remain static.
 
 ## Acceptance tests and local setup
 
