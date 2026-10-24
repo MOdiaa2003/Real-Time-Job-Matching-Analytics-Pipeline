@@ -51,7 +51,7 @@ The Streamlit app contains six views for exploring matching results and monitori
       <sub>Bronze/Silver/Gold output status and data-quality indicators.</sub>
     </td>
     <td align="center" width="50%">
-      <a href="./docs/images/streamlit/05-engine-performance.png">
+      <a href="docs/images/engine-performance-2.png">
         <img src="./docs/images/streamlit/05-engine-performance.png" alt="Streamlit Engine Performance view with batch duration, throughput, row counts, and stage timing charts" width="100%" />
       </a><br />
       <strong>Engine Performance</strong><br />
